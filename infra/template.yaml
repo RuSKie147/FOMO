@@ -1,0 +1,193 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: FOMO - Campus Social Matchmaking Platform Infrastructure
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        LOG_LEVEL: INFO
+
+Resources:
+  # DynamoDB Table
+  FOMOEngineTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: FOMOEngine
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # S3 Media Bucket
+  FOMOMediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - PUT
+              - GET
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3600
+
+  FOMOMediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FOMOMediaBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub arn:aws:s3:::${FOMOMediaBucket}/*
+
+  # HTTP API Gateway
+  FOMOApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: api
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+          - PUT
+          - DELETE
+        AllowHeaders:
+          - '*'
+        MaxAge: 3600
+
+  # Main API Lambda Function
+  FOMOFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler.handler
+      CodeUri: ../backend/
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref FOMOEngineTable
+          MEDIA_BUCKET: !Ref FOMOMediaBucket
+          AWS_REGION_NAME: !Ref AWS::Region
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref FOMOEngineTable
+        - S3ReadPolicy:
+            BucketName: !Ref FOMOMediaBucket
+        - S3WritePolicy:
+            BucketName: !Ref FOMOMediaBucket
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        ProxyApiRoot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref FOMOApi
+            Path: /{proxy+}
+            Method: ANY
+
+  # Cognito User Pool
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: FOMOUserPool
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+      LambdaConfig:
+        PreSignUp: !GetAtt CognitoPreSignUpFunction.Arn
+
+  # Cognito User Pool Client
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: FOMOWebClient
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # Pre-SignUp Lambda for .edu domain validation and auto-verification
+  CognitoPreSignUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      InlineCode: |
+        import json
+        def handler(event, context):
+            email = event['request']['userAttributes'].get('email', '')
+            if email.endswith('.edu') or email.endswith('.edu.in'):
+                event['response']['autoConfirmUser'] = True
+                event['response']['autoVerifyEmail'] = True
+                return event
+            else:
+                raise Exception("Email must end with .edu or .edu.in to join FOMO")
+      Policies: []
+
+  CognitoPreSignUpInvocationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt CognitoPreSignUpFunction.Arn
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${FOMOApi}.execute-api.${AWS::Region}.amazonaws.com/api/"
+  TableName:
+    Description: "DynamoDB Table Name"
+    Value: !Ref FOMOEngineTable
+  BucketName:
+    Description: "S3 Media Bucket Name"
+    Value: !Ref FOMOMediaBucket
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value: !Ref CognitoUserPool
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value: !Ref CognitoUserPoolClient

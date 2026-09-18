@@ -78,7 +78,6 @@ Resources:
   FOMOApi:
     Type: AWS::Serverless::HttpApi
     Properties:
-      StageName: api
       CorsConfiguration:
         AllowOrigins:
           - '*'
@@ -101,8 +100,11 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref FOMOEngineTable
+          DYNAMODB_TABLE: !Ref FOMOEngineTable
           MEDIA_BUCKET: !Ref FOMOMediaBucket
-          AWS_REGION_NAME: !Ref AWS::Region
+          S3_BUCKET: !Ref FOMOMediaBucket
+          AWS_REGION: !Ref AWS::Region
+          USE_MOCK_AWS: "false"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref FOMOEngineTable
@@ -150,7 +152,7 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  # Pre-SignUp Lambda for .edu domain validation and auto-verification
+  # Pre-SignUp Lambda for .edu and .ac.in domain validation and auto-verification
   CognitoPreSignUpFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -159,12 +161,12 @@ Resources:
         import json
         def handler(event, context):
             email = event['request']['userAttributes'].get('email', '')
-            if email.endswith('.edu') or email.endswith('.edu.in'):
+            if email.endswith('.edu') or email.endswith('.edu.in') or email.endswith('.ac.in'):
                 event['response']['autoConfirmUser'] = True
                 event['response']['autoVerifyEmail'] = True
                 return event
             else:
-                raise Exception("Email must end with .edu or .edu.in to join FOMO")
+                raise Exception("Email must end with .edu, .edu.in, or .ac.in to join FOMO")
       Policies: []
 
   CognitoPreSignUpInvocationPermission:
@@ -178,7 +180,7 @@ Resources:
 Outputs:
   ApiUrl:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${FOMOApi}.execute-api.${AWS::Region}.amazonaws.com/api/"
+    Value: !Sub "https://${FOMOApi}.execute-api.${AWS::Region}.amazonaws.com"
   TableName:
     Description: "DynamoDB Table Name"
     Value: !Ref FOMOEngineTable

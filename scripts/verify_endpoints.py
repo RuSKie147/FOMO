@@ -19,7 +19,7 @@ def run_tests(base_url):
             print_colored(f"PASS - Status {res.status_code}", "92")
             print(f"Response snippet: {str(res.text)[:100]}...")
             passed += 1
-            user_id = res.json().get('user_id', 'u_alex') # mock
+            user_id = res.json().get('userId') or res.json().get('user_id', 'u_alex')
         else:
             print_colored(f"FAIL - Status {res.status_code}", "91")
             user_id = 'u_alex'
@@ -63,7 +63,7 @@ def run_tests(base_url):
         if res.status_code in [200, 201]:
             print_colored(f"PASS - Status {res.status_code}", "92")
             print(f"Response snippet: {str(res.text)[:100]}...")
-            event_id = res.json().get('id', 'evt_1')
+            event_id = res.json().get('eventId') or res.json().get('id', 'evt_1')
             passed += 1
         else:
             print_colored(f"FAIL - Status {res.status_code}", "91")

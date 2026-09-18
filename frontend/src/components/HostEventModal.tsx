@@ -11,7 +11,7 @@ interface HostEventModalProps {
 }
 
 export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSuccess }) => {
-  const { user } = useAuth();
+  const { user, college } = useAuth();
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [category, setCategory] = useState<string>('CHILL');
@@ -49,9 +49,14 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
         </button>
         
         <div className="p-6">
-          <h2 className="text-2xl font-mono font-bold text-white mb-6 border-b-[2px] border-pixel-gray pb-2">
-            [ INITIATE_CREW ]
-          </h2>
+          <div className="flex justify-between items-center mb-6 border-b-[2px] border-pixel-gray pb-2">
+            <h2 className="text-2xl font-mono font-bold text-white">
+              [ INITIATE_CREW ]
+            </h2>
+            <span className="font-mono text-xs bg-cyber/10 border border-cyber text-cyber px-2 py-0.5 font-bold">
+              {college.code}
+            </span>
+          </div>
           
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div>

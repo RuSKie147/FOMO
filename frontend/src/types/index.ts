@@ -4,6 +4,8 @@ export interface UserProfile {
   name: string;
   major?: string;
   gradYear?: string;
+  collegeName?: string;
+  domain?: string;
   vibeVector?: number[];
   vibeSummary?: string;
   hasCompletedVibeCheck: boolean;
@@ -14,6 +16,7 @@ export interface CampusEvent {
   eventId: string;
   hostId: string;
   hostName: string;
+  domain?: string;
   title: string;
   description: string;
   category: 'STUDY' | 'MUSIC' | 'FITNESS' | 'HACK' | 'CHILL' | 'FOOD';

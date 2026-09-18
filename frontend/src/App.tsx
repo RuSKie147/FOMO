@@ -14,6 +14,7 @@ const AppContent = () => {
   const [view, setView] = useState<'feed' | 'radar'>('feed');
   const [showHost, setShowHost] = useState(false);
   const [activeEvent, setActiveEvent] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (!user) {
     return <AuthModal />;
@@ -29,9 +30,9 @@ const AppContent = () => {
       
       <main>
         {view === 'feed' ? (
-          <EventFeed onJoinEvent={id => setActiveEvent(id)} />
+          <EventFeed key={refreshKey} onJoinEvent={id => setActiveEvent(id)} />
         ) : (
-          <CampusRadarMap onEventClick={id => setActiveEvent(id)} />
+          <CampusRadarMap key={refreshKey} onEventClick={id => setActiveEvent(id)} />
         )}
       </main>
 
@@ -48,6 +49,7 @@ const AppContent = () => {
           onClose={() => setShowHost(false)} 
           onSuccess={() => {
             setShowHost(false);
+            setRefreshKey(k => k + 1);
             setView('feed');
           }} 
         />
@@ -56,7 +58,10 @@ const AppContent = () => {
       {activeEvent && (
         <SquadRoomModal 
           eventId={activeEvent} 
-          onClose={() => setActiveEvent(null)} 
+          onClose={() => {
+            setActiveEvent(null);
+            setRefreshKey(k => k + 1);
+          }} 
         />
       )}
     </div>

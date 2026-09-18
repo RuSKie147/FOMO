@@ -8,13 +8,17 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, setView }) => {
-  const { user, logout } = useAuth();
+  const { user, college, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 bg-obsidian border-b-[2px] border-white">
       <div className="flex justify-between items-center p-4 max-w-4xl mx-auto">
         <div className="flex items-center gap-2">
           <div className="bg-cyber text-black font-mono font-bold text-xl px-2 py-1 shadow-pixel">FOMO</div>
+          <div className="hidden sm:flex items-center gap-1.5 border border-cyber/50 bg-cyber/10 px-2 py-0.5 text-[11px] font-mono text-cyber">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyber animate-pulse"></span>
+            <span className="font-bold">{college.code}</span>
+          </div>
         </div>
         
         <nav className="flex gap-4">

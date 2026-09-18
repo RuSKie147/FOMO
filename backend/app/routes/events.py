@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query, HTTPException
 from app.models.schemas import EventCreateRequest, EventCreateResponse, FeedResponse, JoinEventRequest, JoinEventResponse
 from app.services.bedrock_service import bedrock_service
 from app.services.db import db_service
-from app.services.vector_math import rank_events
+from app.services.vector_math import rank_events, haversine_distance_km
 from app.config import config
 
 router = APIRouter()
@@ -47,8 +47,12 @@ def get_feed(userId: str, lat: float = config.CAMPUS_LAT, lng: float = config.CA
         # Extract eventId from PK like "EVENT#uuid"
         pk = event_clean.pop('PK', '')
         event_clean['eventId'] = pk.replace('EVENT#', '') if pk else event_clean.get('eventId', '')
+        # Populate similarityScore and distanceKm
+        event_clean['similarityScore'] = round(event_clean.get('_similarity', 0.0), 3)
+        dist = haversine_distance_km(lat, lng, event_clean.get('lat', lat), event_clean.get('lng', lng))
+        event_clean['distanceKm'] = round(dist, 1)
         # Remove DynamoDB internal keys
-        for key in ['SK', 'GSI1PK', 'GSI1SK', 'eventVector']:
+        for key in ['SK', 'GSI1PK', 'GSI1SK', 'eventVector', '_similarity']:
             event_clean.pop(key, None)
         clean_events.append(event_clean)
         
@@ -57,6 +61,20 @@ def get_feed(userId: str, lat: float = config.CAMPUS_LAT, lng: float = config.CA
         "total": len(clean_events),
         "userLocation": {"lat": lat, "lng": lng}
     }
+
+@router.get("/{eventId}")
+def get_event_details(eventId: str):
+    event = db_service.get_event(eventId)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    members = db_service.get_squad_members(eventId)
+    event_clean = dict(event)
+    pk = event_clean.pop('PK', '')
+    event_clean['eventId'] = pk.replace('EVENT#', '') if pk else eventId
+    for key in ['SK', 'GSI1PK', 'GSI1SK', 'eventVector']:
+        event_clean.pop(key, None)
+    event_clean['members'] = members
+    return event_clean
 
 @router.post("/{eventId}/join", response_model=JoinEventResponse)
 def join_event(eventId: str, request: JoinEventRequest):

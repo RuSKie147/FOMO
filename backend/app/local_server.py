@@ -18,6 +18,19 @@ app.include_router(upload.router, prefix="/api")
 app.include_router(events.router, prefix="/api/events")
 app.include_router(auth_mock.router, prefix="/api/auth")
 
+# Alias so both /api/feed and /api/events/feed work seamlessly
+@app.get("/api/feed")
+def read_feed_alias(userId: str, lat: float = 28.5458, lng: float = 77.2732, radiusKm: float = 8.0):
+    return events.get_feed(userId=userId, lat=lat, lng=lng, radiusKm=radiusKm)
+
+@app.put("/mock-s3-upload/{path:path}")
+def mock_s3_upload(path: str):
+    return {"status": "uploaded", "key": path}
+
+@app.get("/mock-s3/{path:path}")
+def mock_s3_get(path: str):
+    return {"status": "ok", "key": path}
+
 @app.get("/")
 def read_root():
     return {"message": "FOMO API running"}

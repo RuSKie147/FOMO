@@ -19,11 +19,11 @@ class UploadUrlResponse(BaseModel):
 
 class EventCreateRequest(BaseModel):
     title: str
-    description: str
-    category: str
+    description: Optional[str] = ""
+    category: Optional[str] = "CHILL"
     imageKey: Optional[str] = None
-    lat: float
-    lng: float
+    lat: Optional[float] = 28.5458
+    lng: Optional[float] = 77.2732
 
 class EventCreateResponse(BaseModel):
     eventId: str
@@ -67,9 +67,9 @@ class FeedResponse(BaseModel):
 
 class JoinEventRequest(BaseModel):
     userId: str
-    name: str
-    major: str
-    vibeSummary: str
+    name: Optional[str] = "Anon"
+    major: Optional[str] = "Undeclared"
+    vibeSummary: Optional[str] = ""
 
 class SquadMember(BaseModel):
     userId: str

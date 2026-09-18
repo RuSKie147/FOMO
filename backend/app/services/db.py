@@ -21,6 +21,7 @@ class DBService:
         item = {
             'PK': f'USER#{user_id}',
             'SK': 'PROFILE',
+            'userId': user_id,
             'email': email,
             'name': name,
             'major': major,
@@ -43,24 +44,33 @@ class DBService:
             response = self.table.get_item(Key={'PK': pk, 'SK': sk})
             return response.get('Item')
 
-    def update_user_vibe(self, user_id: str, vibe_vector: List[float]):
+    def update_user_vibe(self, user_id: str, vibe_vector: List[float], vibe_summary: str = ""):
         pk = f'USER#{user_id}'
         sk = 'PROFILE'
         if self.use_mock:
             key = f"{pk}|{sk}"
             if key in self.mock_data:
                 self.mock_data[key]['vibeVector'] = vibe_vector
+                if vibe_summary:
+                    self.mock_data[key]['vibeSummary'] = vibe_summary
             else:
                 self.mock_data[key] = {
                     'PK': pk, 'SK': sk,
+                    'userId': user_id,
                     'vibeVector': vibe_vector,
+                    'vibeSummary': vibe_summary,
                     'createdAt': self._get_timestamp()
                 }
         else:
+            update_expr = "SET vibeVector = :vec"
+            expr_attrs = {':vec': vibe_vector}
+            if vibe_summary:
+                update_expr += ", vibeSummary = :sum"
+                expr_attrs[':sum'] = vibe_summary
             self.table.update_item(
                 Key={'PK': pk, 'SK': sk},
-                UpdateExpression="SET vibeVector = :vec",
-                ExpressionAttributeValues={':vec': vibe_vector}
+                UpdateExpression=update_expr,
+                ExpressionAttributeValues=expr_attrs
             )
 
     def put_event(self, host_id: str, title: str, description: str, category: str, image_key: str, event_vector: List[float], lat: float, lng: float):
@@ -68,6 +78,7 @@ class DBService:
         item = {
             'PK': f'EVENT#{event_id}',
             'SK': 'METADATA',
+            'eventId': event_id,
             'GSI1PK': 'STATUS#ACTIVE',
             'GSI1SK': self._get_timestamp(),
             'hostId': host_id,
@@ -106,6 +117,7 @@ class DBService:
         item = {
             'PK': f'EVENT#{event_id}',
             'SK': f'MEMBER#{user_id}',
+            'userId': user_id,
             'GSI1PK': f'USER#{user_id}',
             'GSI1SK': f'EVENT#{event_id}',
             'name': name,
@@ -113,21 +125,26 @@ class DBService:
             'vibeSummary': vibe_summary,
             'joinedAt': self._get_timestamp()
         }
+        member_key = f"{item['PK']}|{item['SK']}"
         if self.use_mock:
-            event_key = f"EVENT#{event_id}|METADATA"
-            if event_key in self.mock_data:
-                self.mock_data[event_key]['memberCount'] = self.mock_data[event_key].get('memberCount', 0) + 1
-            self.mock_data[f"{item['PK']}|{item['SK']}"] = item
+            already_member = member_key in self.mock_data
+            if not already_member:
+                event_key = f"EVENT#{event_id}|METADATA"
+                if event_key in self.mock_data:
+                    self.mock_data[event_key]['memberCount'] = self.mock_data[event_key].get('memberCount', 0) + 1
+            self.mock_data[member_key] = item
             return True
         else:
             try:
-                # Need to run in transaction or simply atomic update
+                existing = self.table.get_item(Key={'PK': f'EVENT#{event_id}', 'SK': f'MEMBER#{user_id}'})
+                already_member = 'Item' in existing
                 self.table.put_item(Item=item)
-                self.table.update_item(
-                    Key={'PK': f'EVENT#{event_id}', 'SK': 'METADATA'},
-                    UpdateExpression="SET memberCount = memberCount + :inc",
-                    ExpressionAttributeValues={':inc': 1}
-                )
+                if not already_member:
+                    self.table.update_item(
+                        Key={'PK': f'EVENT#{event_id}', 'SK': 'METADATA'},
+                        UpdateExpression="SET memberCount = memberCount + :inc",
+                        ExpressionAttributeValues={':inc': 1}
+                    )
                 return True
             except Exception:
                 return False
@@ -138,13 +155,20 @@ class DBService:
             prefix = f"EVENT#{event_id}|MEMBER#"
             for k, v in self.mock_data.items():
                 if k.startswith(prefix):
-                    members.append(v)
+                    m = dict(v)
+                    if 'userId' not in m:
+                        m['userId'] = m.get('SK', '').replace('MEMBER#', '')
+                    members.append(m)
             return members
         else:
             response = self.table.query(
                 KeyConditionExpression=Key('PK').eq(f'EVENT#{event_id}') & Key('SK').begins_with('MEMBER#')
             )
-            return response.get('Items', [])
+            items = response.get('Items', [])
+            for m in items:
+                if 'userId' not in m:
+                    m['userId'] = m.get('SK', '').replace('MEMBER#', '')
+            return items
 
     def get_event(self, event_id: str) -> Optional[Dict]:
         if self.use_mock:

@@ -51,4 +51,27 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    
+  getPendingInvitations: (email: string) =>
+    fetchWrapper<any>(`/api/invitations/pending?email=${encodeURIComponent(email)}`),
+    
+  getInvitation: (inviteId: string) =>
+    fetchWrapper<any>(`/api/invitations/${inviteId}`),
+    
+  acceptInvitation: (inviteId: string, data: { userId: string; name?: string; major?: string; vibeSummary?: string }) =>
+    fetchWrapper<any>(`/api/invitations/${inviteId}/accept`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+  declineInvitation: (inviteId: string) =>
+    fetchWrapper<any>(`/api/invitations/${inviteId}/decline`, {
+      method: 'POST',
+    }),
+    
+  sendInvitations: (data: { eventId: string; hostId: string; hostName: string; inviteEmails: string[]; title?: string; category?: string }) =>
+    fetchWrapper<any>('/api/invitations/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

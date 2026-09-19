@@ -23,26 +23,6 @@ const IIITD_CENTER = {
   address: 'Okhla Industrial Estate, Phase III, Near Govindpuri Metro Station, New Delhi 110020'
 };
 
-const TILE_LAYERS = {
-  dark: {
-    name: 'CYBER_DARK',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    subdomains: ['a', 'b', 'c'],
-    attribution: '&copy; OpenStreetMap contributors'
-  },
-  satellite: {
-    name: 'SATELLITE',
-    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    subdomains: [''],
-    attribution: '&copy; Google Maps'
-  },
-  osm: {
-    name: 'STREET_MAP',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    subdomains: ['a', 'b', 'c'],
-    attribution: '&copy; OpenStreetMap contributors'
-  }
-};
 
 export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) => {
   const { user, college } = useAuth();
@@ -281,7 +261,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
 
     // Ensure radar circles and markers stay on top
     if (radarCircleRef.current) radarCircleRef.current.bringToFront();
-    if (markersLayerRef.current) markersLayerRef.current.bringToFront();
+    if (markersLayerRef.current) (markersLayerRef.current as any).bringToFront?.();
 
     map.invalidateSize();
     setTimeout(() => {

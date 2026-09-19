@@ -26,11 +26,39 @@ class EventCreateRequest(BaseModel):
     imageKey: Optional[str] = None
     lat: Optional[float] = 28.5458
     lng: Optional[float] = 77.2732
+    inviteEmails: Optional[List[str]] = []
 
 class EventCreateResponse(BaseModel):
     eventId: str
     status: str
     similarityIndexing: str
+    invitedCount: Optional[int] = 0
+
+class Invitation(BaseModel):
+    inviteId: str
+    eventId: str
+    eventTitle: str
+    eventCategory: str
+    hostId: str
+    hostName: str
+    inviteeEmail: str
+    status: str
+    createdAt: str
+    updatedAt: Optional[str] = None
+
+class AcceptInviteRequest(BaseModel):
+    userId: str
+    name: Optional[str] = "Anon"
+    major: Optional[str] = "Undeclared"
+    vibeSummary: Optional[str] = ""
+
+class SendInvitesRequest(BaseModel):
+    eventId: str
+    hostId: str
+    hostName: str
+    inviteEmails: List[str]
+    title: Optional[str] = None
+    category: Optional[str] = None
 
 class UserProfile(BaseModel):
     userId: str

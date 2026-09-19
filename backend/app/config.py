@@ -23,5 +23,9 @@ class Config:
     CAMPUS_LAT = 28.5458
     CAMPUS_LNG = 77.2733
     DEFAULT_RADIUS_KM = 8.0
+    
+    # Email & Invitation Config
+    SES_SENDER_EMAIL = os.getenv("SES_SENDER_EMAIL", "squad@fomo.app")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 config = Config()

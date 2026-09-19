@@ -239,4 +239,96 @@ class DBService:
                 ExpressionAttributeValues={':status': 'STATUS#LOCKED', ':ice': icebreaker}
             )
 
+    # ---------------------------------------------------------
+    # Invitation Methods
+    # ---------------------------------------------------------
+    def create_invitation(
+        self,
+        event_id: str,
+        event_title: str,
+        event_category: str,
+        host_id: str,
+        host_name: str,
+        invitee_email: str
+    ) -> Dict:
+        invite_id = str(uuid.uuid4())
+        clean_email = invitee_email.lower().strip()
+        item = {
+            'PK': f'INVITE#{invite_id}',
+            'SK': 'METADATA',
+            'GSI1PK': f'USER_EMAIL#{clean_email}',
+            'GSI1SK': 'STATUS#PENDING',
+            'inviteId': invite_id,
+            'eventId': event_id,
+            'eventTitle': event_title,
+            'eventCategory': event_category,
+            'hostId': host_id,
+            'hostName': host_name,
+            'inviteeEmail': clean_email,
+            'status': 'PENDING',
+            'createdAt': self._get_timestamp()
+        }
+        if self.use_mock:
+            self.mock_data[f"{item['PK']}|{item['SK']}"] = item
+            self._save_mock_data()
+        else:
+            self.table.put_item(Item=item)
+        return item
+
+    def get_invitation(self, invite_id: str) -> Optional[Dict]:
+        pk = f'INVITE#{invite_id}'
+        sk = 'METADATA'
+        if self.use_mock:
+            return self.mock_data.get(f"{pk}|{sk}")
+        else:
+            res = self.table.get_item(Key={'PK': pk, 'SK': sk})
+            return res.get('Item')
+
+    def get_pending_invitations_for_email(self, email: str) -> List[Dict]:
+        clean_email = email.lower().strip()
+        if self.use_mock:
+            results = []
+            for k, v in self.mock_data.items():
+                if k.startswith('INVITE#') and k.endswith('|METADATA'):
+                    if v.get('inviteeEmail') == clean_email and v.get('status') == 'PENDING':
+                        results.append(v)
+            return sorted(results, key=lambda x: x.get('createdAt', ''), reverse=True)
+        else:
+            res = self.table.query(
+                IndexName='GSI1',
+                KeyConditionExpression=Key('GSI1PK').eq(f'USER_EMAIL#{clean_email}') & Key('GSI1SK').eq('STATUS#PENDING')
+            )
+            return res.get('Items', [])
+
+    def update_invitation_status(self, invite_id: str, new_status: str) -> bool:
+        pk = f'INVITE#{invite_id}'
+        sk = 'METADATA'
+        timestamp = self._get_timestamp()
+        if self.use_mock:
+            key = f"{pk}|{sk}"
+            if key in self.mock_data:
+                self.mock_data[key]['status'] = new_status
+                self.mock_data[key]['GSI1SK'] = f'STATUS#{new_status}'
+                self.mock_data[key]['updatedAt'] = timestamp
+                self._save_mock_data()
+                return True
+            return False
+        else:
+            try:
+                self.table.update_item(
+                    Key={'PK': pk, 'SK': sk},
+                    UpdateExpression="SET #s = :status, GSI1SK = :gsi1sk, updatedAt = :time",
+                    ExpressionAttributeNames={'#s': 'status'},
+                    ExpressionAttributeValues={
+                        ':status': new_status,
+                        ':gsi1sk': f'STATUS#{new_status}',
+                        ':time': timestamp
+                    }
+                )
+                return True
+            except Exception as e:
+                print(f"Error updating invitation: {e}")
+                return False
+
 db_service = DBService()
+

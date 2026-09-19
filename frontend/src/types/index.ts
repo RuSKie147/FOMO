@@ -48,3 +48,20 @@ export interface CrewSquad {
   icebreaker?: string;
   finalizedAt?: string;
 }
+
+export interface EventInvitation {
+  inviteId: string;
+  eventId: string;
+  eventTitle: string;
+  eventCategory: string;
+  hostId: string;
+  hostName: string;
+  inviteeEmail: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+  createdAt: string;
+  eventStatus?: string;
+  memberCount?: number;
+  maxMembers?: number;
+  eventDescription?: string;
+}
+

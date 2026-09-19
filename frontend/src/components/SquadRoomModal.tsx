@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { X, Sparkles, MessageSquare } from 'lucide-react';
+import { X, Sparkles, MessageSquare, Mail, UserPlus, Check } from 'lucide-react';
 import { CrewSquad } from '../types';
 
 interface SquadRoomModalProps {
@@ -10,9 +10,12 @@ interface SquadRoomModalProps {
 }
 
 export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose }) => {
-  const { user } = useAuth();
+  const { user, college } = useAuth();
   const [squad, setSquad] = useState<CrewSquad | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [inviteEmailInput, setInviteEmailInput] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -48,6 +51,35 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
       ignore = true;
     };
   }, [eventId, user]);
+
+  const handleSendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    let email = inviteEmailInput.trim().toLowerCase();
+    if (!email) return;
+
+    if (!email.includes('@') && college?.domain) {
+      email = `${email}@${college.domain}`;
+    }
+
+    setInviteSending(true);
+    setInviteMsg(null);
+    try {
+      await api.sendInvitations({
+        eventId,
+        hostId: user.userId,
+        hostName: user.name || 'Squad Member',
+        inviteEmails: [email]
+      });
+      setInviteMsg(`Invite dispatched to ${email}!`);
+      setInviteEmailInput('');
+      setTimeout(() => setInviteMsg(null), 4000);
+    } catch (err) {
+      setInviteMsg('Failed to send invite');
+    } finally {
+      setInviteSending(false);
+    }
+  };
 
   if (error) {
     return (
@@ -121,6 +153,40 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
             ))}
           </div>
           
+          {/* Direct Invite Squadmate if not locked */}
+          {!isLocked && (
+            <div className="border border-pixel-gray bg-pixel-dark/80 p-4 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-mono text-xs text-cyber font-bold flex items-center gap-1.5">
+                  <UserPlus size={14} />
+                  <span>KNOW SOMEONE? INVITE DIRECTLY</span>
+                </div>
+                {inviteMsg && (
+                  <span className="font-mono text-xs text-cyber flex items-center gap-1">
+                    <Check size={12} /> {inviteMsg}
+                  </span>
+                )}
+              </div>
+              <form onSubmit={handleSendInvite} className="flex gap-2">
+                <input
+                  type="text"
+                  value={inviteEmailInput}
+                  onChange={(e) => setInviteEmailInput(e.target.value)}
+                  placeholder={`friend@${college?.domain || 'college.edu'}`}
+                  className="bg-obsidian border-[2px] border-pixel-gray p-2 text-white font-mono text-xs focus:border-cyber outline-none flex-1"
+                />
+                <button
+                  type="submit"
+                  disabled={inviteSending || !inviteEmailInput.trim()}
+                  className="bg-cyber text-black border-[2px] border-cyber font-mono text-xs font-bold px-4 py-2 hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-1"
+                >
+                  <Mail size={13} />
+                  {inviteSending ? 'SENDING...' : 'DISPATCH INVITE'}
+                </button>
+              </form>
+            </div>
+          )}
+
           {isLocked && squad.icebreaker && (
             <div className="border-[2px] border-cyber bg-cyber/5 p-5 relative mt-4">
               <div className="absolute -top-3 left-4 bg-cyber text-black font-mono text-xs font-bold px-2 py-0.5 flex items-center gap-1">

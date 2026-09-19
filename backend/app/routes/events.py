@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query, HTTPException
 from app.models.schemas import EventCreateRequest, EventCreateResponse, JoinEventRequest
 from app.services.bedrock_service import bedrock_service
 from app.services.db import db_service
+from app.services.email_service import email_service
 from app.services.vector_math import rank_events
 from app.config import config
 
@@ -27,10 +28,35 @@ def create_event(request: EventCreateRequest):
         host_name=host_name
     )
     
+    invited_count = 0
+    if request.inviteEmails:
+        for email in request.inviteEmails:
+            clean_email = email.strip()
+            if not clean_email or "@" not in clean_email:
+                continue
+            invite_record = db_service.create_invitation(
+                event_id=event_id,
+                event_title=request.title,
+                event_category=request.category or "CHILL",
+                host_id=host_id,
+                host_name=host_name,
+                invitee_email=clean_email
+            )
+            email_service.send_invitation_email(
+                invitee_email=clean_email,
+                host_name=host_name,
+                event_title=request.title,
+                event_category=request.category or "CHILL",
+                invite_id=invite_record["inviteId"],
+                event_id=event_id
+            )
+            invited_count += 1
+            
     return EventCreateResponse(
         eventId=event_id,
         status="ACTIVE",
-        similarityIndexing="COMPLETED"
+        similarityIndexing="COMPLETED",
+        invitedCount=invited_count
     )
 
 @router.get("/feed")

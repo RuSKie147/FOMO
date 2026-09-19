@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import vibe_check, upload, events, auth_mock
+from app.routes import vibe_check, upload, events, auth_mock, invitations
 import os
 
 app = FastAPI(title="FOMO API")
@@ -17,6 +17,7 @@ app.include_router(vibe_check.router, prefix="/api")
 app.include_router(upload.router, prefix="/api")
 app.include_router(events.router, prefix="/api/events")
 app.include_router(auth_mock.router, prefix="/api/auth")
+app.include_router(invitations.router, prefix="/api/invitations")
 
 # Alias so both /api/feed and /api/events/feed work seamlessly
 @app.get("/api/feed")

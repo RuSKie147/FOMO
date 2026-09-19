@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { Map, List, X, Sparkles, RefreshCw } from 'lucide-react';
+import { Map, List, X, Sparkles, RefreshCw, Mail } from 'lucide-react';
 
 interface NavbarProps {
   currentView: 'feed' | 'radar';
   setView: (view: 'feed' | 'radar') => void;
+  onOpenInvitations: () => void;
+  pendingCount?: number;
 }
 
 const INTEREST_OPTIONS = [
@@ -19,7 +21,7 @@ const INTEREST_OPTIONS = [
   'Startups & AI'
 ];
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, setView }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onOpenInvitations, pendingCount = 0 }) => {
   const { user, logout, updateUser } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [editName, setEditName] = useState(user?.name || '');
@@ -131,13 +133,34 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView }) => {
           </button>
         </nav>
         
-        <div className="flex items-center gap-3 relative" ref={dropdownRef}>
+        <div className="flex items-center gap-3">
           {user && (
-            <>
-              <button 
-                onClick={() => setIsProfileOpen(!isProfileOpen)} 
-                className="flex items-center gap-2 border-[2px] border-white px-3 py-1 rounded-full hover:border-cyber hover:text-cyber transition-colors"
-              >
+            <button 
+              onClick={onOpenInvitations}
+              className={`font-mono font-bold text-xs flex items-center gap-1.5 px-3 py-1.5 border-[2px] transition-all ${
+                pendingCount > 0
+                  ? 'border-cyber bg-cyber/15 text-cyber shadow-pixel animate-pulse'
+                  : 'border-pixel-gray text-gray-400 hover:border-white hover:text-white bg-obsidian'
+              }`}
+              title="Squad Invitations"
+            >
+              <Mail size={14} className={pendingCount > 0 ? 'text-cyber' : 'text-gray-400'} />
+              <span className="hidden sm:inline">INVITES</span>
+              {pendingCount > 0 && (
+                <span className="bg-cyber text-black px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-sm">
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          <div className="relative" ref={dropdownRef}>
+            {user && (
+              <>
+                <button 
+                  onClick={() => setIsProfileOpen(!isProfileOpen)} 
+                  className="flex items-center gap-2 border-[2px] border-white px-3 py-1 rounded-full hover:border-cyber hover:text-cyber transition-colors"
+                >
                 <div className="w-6 h-6 rounded-full bg-cyber flex items-center justify-center text-black font-bold text-xs">
                   {user.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
@@ -239,6 +262,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView }) => {
               )}
             </>
           )}
+          </div>
         </div>
       </div>
       <div className="h-1 bg-cyber w-full"></div>

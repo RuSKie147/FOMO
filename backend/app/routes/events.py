@@ -8,6 +8,18 @@ from app.config import config
 
 router = APIRouter()
 
+def format_likes_summary(vibe_str: str) -> str:
+    if not vibe_str:
+        return "Likes: Campus Exploration, Chill Hangouts"
+    clean = vibe_str.strip()
+    if clean.lower().startswith("you seem like a person who likes"):
+        clean = clean[32:].strip().lstrip(":").strip().rstrip(".")
+        return f"Likes: {clean}"
+    if not clean.lower().startswith("likes:") and not clean.lower().startswith("likes "):
+        clean = clean.rstrip(".")
+        return f"Likes: {clean}"
+    return clean
+
 @router.post("", response_model=EventCreateResponse)
 def create_event(request: EventCreateRequest):
     host_id = request.userId or "user_demo"
@@ -35,7 +47,7 @@ def create_event(request: EventCreateRequest):
     # Automatically add host as the first member of their own squad
     user_info = db_service.get_user(host_id)
     host_major = user_info.get("major", "Host") if user_info else "Host"
-    host_vibe = user_info.get("vibeSummary", "Squad Initiator") if user_info else "Squad Initiator"
+    host_vibe = format_likes_summary(user_info.get("vibeSummary", "")) if user_info else "Likes: Campus Exploration"
     db_service.add_squad_member(
         event_id=event_id,
         user_id=host_id,
@@ -44,11 +56,16 @@ def create_event(request: EventCreateRequest):
         vibe_summary=host_vibe
     )
     
+    host_user = db_service.get_user(host_id)
+    host_email = host_user.get("email", "").lower().strip() if host_user else ""
+
     invited_count = 0
     if request.inviteEmails:
         for email in request.inviteEmails:
             clean_email = email.strip()
             if not clean_email or "@" not in clean_email:
+                continue
+            if host_email and clean_email.lower() == host_email:
                 continue
             invite_record = db_service.create_invitation(
                 event_id=event_id,
@@ -154,7 +171,7 @@ def get_event_details(eventId: str):
             "userId": m.get("SK", "").replace("MEMBER#", "") if "SK" in m else m.get("userId", ""),
             "name": m.get("name", "Anon"),
             "major": m.get("major", "Undeclared"),
-            "vibeSummary": m.get("vibeSummary", ""),
+            "vibeSummary": format_likes_summary(m.get("vibeSummary", "")),
             "joinedAt": m.get("joinedAt", "")
         })
     event_clean = dict(event)
@@ -185,7 +202,7 @@ def join_event(eventId: str, request: JoinEventRequest):
             user_id=host_id,
             name=host_name,
             major="Host",
-            vibe_summary="Squad Initiator"
+            vibe_summary="Likes: Campus Exploration, Impromptu Meetups"
         )
         raw_members = db_service.get_squad_members(eventId)
     members = []
@@ -198,7 +215,7 @@ def join_event(eventId: str, request: JoinEventRequest):
             "userId": uid,
             "name": m.get("name", "Anon"),
             "major": m.get("major", "Undeclared"),
-            "vibeSummary": m.get("vibeSummary", ""),
+            "vibeSummary": format_likes_summary(m.get("vibeSummary", "")),
             "joinedAt": m.get("joinedAt", "")
         })
     
@@ -256,7 +273,7 @@ def join_event(eventId: str, request: JoinEventRequest):
             "userId": m.get("SK", "").replace("MEMBER#", "") if "SK" in m else m.get("userId", ""),
             "name": m.get("name", "Anon"),
             "major": m.get("major", "Undeclared"),
-            "vibeSummary": m.get("vibeSummary", ""),
+            "vibeSummary": format_likes_summary(m.get("vibeSummary", "")),
             "joinedAt": m.get("joinedAt", "")
         })
     

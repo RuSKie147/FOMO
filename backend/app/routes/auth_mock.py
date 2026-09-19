@@ -45,3 +45,8 @@ def demo_login(request: DemoLoginRequest):
         "hasCompletedVibeCheck": False,
         "createdAt": user.get("createdAt", "")
     }
+
+@router.post("/reset-demo-db")
+def reset_demo_db():
+    db_service.reset_database()
+    return {"status": "SUCCESS", "message": "Demo database wiped and reset"}

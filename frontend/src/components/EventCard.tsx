@@ -1,7 +1,8 @@
 import React from 'react';
 import { CampusEvent } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Users, MapPin, Zap, MessageSquare, Check, Clock } from 'lucide-react';
+import { Users, MapPin, Zap, MessageSquare, Check, Clock, Calendar } from 'lucide-react';
+import { formatEventDateTime } from '../utils/dateUtils';
 
 interface EventCardProps {
   event: CampusEvent;
@@ -64,15 +65,21 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onJoin }) => {
         <h3 className="font-mono font-bold text-xl text-white mb-1 line-clamp-1">{event.title}</h3>
         <p className="text-gray-400 text-sm mb-2 line-clamp-2 flex-1">{event.description}</p>
         
-        {/* Dynamic Location & Expiration Badges */}
-        <div className="flex flex-wrap items-center gap-2 mb-3 text-[11px] font-mono">
+        {/* Dynamic Schedule, Location & Expiration Badges */}
+        <div className="flex flex-wrap items-center gap-1.5 mb-3 text-[11px] font-mono">
+          {(event.scheduledAt || event.expiresAt) && (
+            <span className="inline-flex items-center gap-1 text-white bg-obsidian border border-white/40 px-2 py-0.5 font-bold shadow-sm">
+              <Calendar size={11} className="text-cyber" />
+              <span>{formatEventDateTime(event.scheduledAt, event.expiresAt)}</span>
+            </span>
+          )}
           {event.locationName && (
-            <span className="inline-flex items-center gap-1 text-cyber bg-obsidian border border-cyber/40 px-1.5 py-0.5 truncate max-w-[190px]">
+            <span className="inline-flex items-center gap-1 text-cyber bg-obsidian border border-cyber/40 px-1.5 py-0.5 truncate max-w-[170px]">
               <MapPin size={10} /> {event.locationName}
             </span>
           )}
           {event.expiresAt && (
-            <span className="inline-flex items-center gap-1 text-gray-400 bg-obsidian border border-pixel-gray px-1.5 py-0.5">
+            <span className="inline-flex items-center gap-1 text-gray-400 bg-obsidian border border-pixel-gray px-1.5 py-0.5" title="Event Expiration">
               <Clock size={10} /> {new Date(event.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}

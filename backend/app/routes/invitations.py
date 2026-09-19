@@ -158,10 +158,17 @@ def send_invitations(request: SendInvitesRequest):
     event_title = request.title or event.get("title", "Campus Event")
     event_category = request.category or event.get("category", "CHILL")
     
+    host_user = db_service.get_user(request.hostId)
+    host_email = host_user.get("email", "").lower().strip() if host_user else ""
+
     sent_invites = []
     for email in request.inviteEmails:
         clean_email = email.strip()
         if not clean_email or "@" not in clean_email:
+            continue
+        
+        # Disallow self-invitation
+        if host_email and clean_email.lower() == host_email:
             continue
         
         # 1. Create DB record

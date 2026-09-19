@@ -79,7 +79,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onOpenInvi
 
   const handleSave = async () => {
     setIsSaving(true);
-    const newSummary = selectedInterests.join(', ') || user?.vibeSummary || 'Campus Explorer';
+    const newSummary = selectedInterests.length > 0 
+      ? `Likes: ${selectedInterests.slice(0, 4).join(', ')}` 
+      : (user?.vibeSummary || 'Likes: Campus Explorer');
     try {
       if (user?.userId) {
         await api.submitVibeCheck(user.userId, [

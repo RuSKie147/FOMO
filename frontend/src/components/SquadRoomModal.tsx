@@ -1,13 +1,23 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { X, Sparkles, MessageSquare, Mail, UserPlus, Check, Send, LogOut, Trash2, MapPin, Clock, Users, AlertTriangle } from 'lucide-react';
+import { X, Sparkles, MessageSquare, Mail, UserPlus, Check, Send, LogOut, Trash2, MapPin, Clock, Users, AlertTriangle, Calendar } from 'lucide-react';
 import { CrewSquad, ChatMessage } from '../types';
+import { formatEventDateTime } from '../utils/dateUtils';
 
 interface SquadRoomModalProps {
   eventId: string;
   onClose: () => void;
 }
+
+const formatLikesSummary = (summary?: string) => {
+  if (!summary) return 'Likes: Campus Life, Tech & Hangouts';
+  let cleaned = summary.trim();
+  cleaned = cleaned.replace(/^you seem like a person who likes\s*/i, '');
+  cleaned = cleaned.replace(/^likes:\s*/i, '');
+  cleaned = cleaned.replace(/\.+$/, '');
+  return `Likes: ${cleaned}`;
+};
 
 export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose }) => {
   const { user, college } = useAuth();
@@ -36,7 +46,7 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
         userId: user.userId,
         name: user.name,
         major: user.major || 'Undeclared',
-        vibeSummary: user.vibeSummary || 'FOMO member'
+        vibeSummary: user.vibeSummary ? formatLikesSummary(user.vibeSummary) : 'Likes: Campus Explorer, Chill'
       });
       
       setSquad({
@@ -100,6 +110,12 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
 
     if (!email.includes('@') && college?.domain) {
       email = `${email}@${college.domain}`;
+    }
+
+    if (user?.email && email === user.email.toLowerCase().trim()) {
+      setInviteMsg('You cannot invite yourself!');
+      setTimeout(() => setInviteMsg(null), 3000);
+      return;
     }
 
     setInviteSending(true);
@@ -206,13 +222,17 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
       <div className={`bg-obsidian border-[2px] w-full max-w-2xl relative flex flex-col max-h-[90vh] 
         ${isLocked ? 'border-cyber shadow-pixel' : 'border-white shadow-pixel-white'}`}>
         
-        <button onClick={onClose} className="absolute top-3 right-3 text-white hover:text-cyber z-10">
-          <X size={24} />
+        <button 
+          onClick={onClose} 
+          aria-label="Close modal"
+          className="absolute top-3.5 right-3.5 p-1 text-white hover:text-cyber hover:bg-white/10 z-30 transition-colors"
+        >
+          <X size={22} />
         </button>
         
         {/* Header with Event Title & Status */}
-        <div className="p-5 border-b-[2px] border-pixel-gray">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="p-5 border-b-[2px] border-pixel-gray pr-14">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             {squad.category && (
               <span className="font-mono text-[10px] bg-cyber text-black px-1.5 py-0.5 font-bold uppercase">
                 {squad.category}
@@ -221,7 +241,7 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
             <span className="text-xs font-mono text-gray-400">
               HOST: <strong className="text-white">{squad.hostName || 'Aditya Sharma'}</strong>
             </span>
-            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 ml-auto ${
+            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 ml-auto ${
               isLocked ? 'bg-cyber/20 text-cyber border border-cyber' : 'bg-white/10 text-white border border-white/40'
             }`}>
               {isLocked ? '[ CREW_LOCKED ]' : '[ ASSEMBLING ]'}
@@ -243,6 +263,12 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
               <span className="text-cyber font-bold">
                 {squad.members.length} / {maxM} SLOTS FILLED
               </span>
+              {(squad.scheduledAt || squad.expiresAt) && (
+                <span className="text-white font-mono text-[11px] flex items-center gap-1 bg-pixel-dark border border-white/40 px-2 py-0.5 font-bold shadow-sm">
+                  <Calendar size={11} className="text-cyber" />
+                  <span>{formatEventDateTime(squad.scheduledAt, squad.expiresAt)}</span>
+                </span>
+              )}
               {squad.locationName && (
                 <span className="text-gray-300 font-mono text-[11px] flex items-center gap-1 bg-pixel-dark border border-pixel-gray px-1.5 py-0.5">
                   <MapPin size={11} className="text-cyber" />
@@ -250,7 +276,7 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
                 </span>
               )}
               {squad.expiresAt && (
-                <span className="text-gray-400 font-mono text-[10px] flex items-center gap-1">
+                <span className="text-gray-400 font-mono text-[10px] flex items-center gap-1" title="Expires">
                   <Clock size={10} />
                   <span>EXPIRES {new Date(squad.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </span>
@@ -382,8 +408,11 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
                         </div>
                         <div className="text-xs text-cyber font-mono truncate">{m.major || 'Student'}</div>
                         {m.vibeSummary && (
-                          <div className="text-[11px] text-gray-400 font-mono mt-0.5 line-clamp-1">
-                            {m.vibeSummary}
+                          <div 
+                            className="text-[11px] text-gray-300 font-mono mt-0.5 line-clamp-1"
+                            title={formatLikesSummary(m.vibeSummary)}
+                          >
+                            <span className="text-cyber font-bold">Likes:</span> {formatLikesSummary(m.vibeSummary).replace(/^Likes:\s*/i, '')}
                           </div>
                         )}
                       </div>

@@ -5,6 +5,7 @@ import time
 import requests
 import argparse
 import sys
+from datetime import datetime, timedelta, timezone
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -88,6 +89,12 @@ def run_seed(base_url):
     base_url = base_url.rstrip("/")
     print_colored(f"🌱 Starting FOMO seeding against: {base_url}", "92")
     
+    try:
+        requests.post(f"{base_url}/api/auth/reset-demo-db", timeout=5)
+        print_colored("🧹 Cleaned database state for fresh seeding.", "90")
+    except Exception as e:
+        print(f"Note: Could not reset db via endpoint: {e}")
+        
     created_users = {}
     
     print_colored("\n👤 Creating and vibe-checking demo users...", "96")
@@ -118,19 +125,42 @@ def run_seed(base_url):
     second_event_id = None
     third_event_id = None
     user_list = list(created_users.values())
+    now = datetime.now(timezone.utc)
+    campus_locations = [
+        "SAC Amphitheatre",
+        "R&D Block 4th Floor",
+        "Library 2nd Floor",
+        "Cafeteria Gate 1",
+        "Perimeter Track",
+        "Student Center",
+        "Hostel Lawn",
+        "Academic Quad",
+        "Design Studio Lab",
+        "Faculty Lounge Lawns"
+    ]
     for i, e in enumerate(events_data):
-        lat = IIITD_LAT + random.uniform(-0.0018, 0.0018)
-        lon = IIITD_LON + random.uniform(-0.0018, 0.0018)
+        lat = IIITD_LAT + random.uniform(-0.0016, 0.0016)
+        lon = IIITD_LON + random.uniform(-0.0016, 0.0016)
         # Cycle through users as event hosts
         host_user = user_list[i % len(user_list)] if user_list else {}
+        
+        # Schedule between 1 hour and 28 hours ahead
+        sched_time = now + timedelta(hours=1.5 + (i * 2.5))
+        sched_iso = sched_time.isoformat()
+        expires_iso = (sched_time + timedelta(hours=4)).isoformat()
+        loc_name = campus_locations[i % len(campus_locations)]
+
         payload = {
             "userId": host_user.get("userId", "user_demo"),
             "hostName": host_user.get("name", "Campus User"),
             "title": e["title"],
             "description": e["desc"],
             "category": e["category"],
+            "locationName": loc_name,
             "lat": lat,
-            "lng": lon
+            "lng": lon,
+            "scheduledAt": sched_iso,
+            "expiresAt": expires_iso
         }
         try:
             res = requests.post(f"{base_url}/api/events", json=payload, timeout=10)
@@ -162,7 +192,7 @@ def run_seed(base_url):
                             "userId": u["userId"],
                             "name": u["name"],
                             "major": u["major"],
-                            "vibeSummary": ", ".join(u["answers"][:2])
+                            "vibeSummary": f"Likes: {', '.join(u['answers'][:3])}"
                         },
                         timeout=10
                     )
@@ -178,7 +208,7 @@ def run_seed(base_url):
         u = created_users["priya.patel@iiitd.ac.in"]
         requests.post(
             f"{base_url}/api/events/{second_event_id}/join",
-            json={"userId": u["userId"], "name": u["name"], "major": u["major"], "vibeSummary": "AI & Hackathons"},
+            json={"userId": u["userId"], "name": u["name"], "major": u["major"], "vibeSummary": f"Likes: {', '.join(u['answers'][:3])}"},
             timeout=10
         )
 
@@ -186,14 +216,14 @@ def run_seed(base_url):
         u1 = created_users["rohan.gupta@iiitd.ac.in"]
         requests.post(
             f"{base_url}/api/events/{third_event_id}/join",
-            json={"userId": u1["userId"], "name": u1["name"], "major": u1["major"], "vibeSummary": "Street Food & Chai"},
+            json={"userId": u1["userId"], "name": u1["name"], "major": u1["major"], "vibeSummary": f"Likes: {', '.join(u1['answers'][:3])}"},
             timeout=10
         )
         if "rhea.sen@iiitd.ac.in" in created_users:
             u2 = created_users["rhea.sen@iiitd.ac.in"]
             requests.post(
                 f"{base_url}/api/events/{third_event_id}/join",
-                json={"userId": u2["userId"], "name": u2["name"], "major": u2["major"], "vibeSummary": "Cafe & Pods"},
+                json={"userId": u2["userId"], "name": u2["name"], "major": u2["major"], "vibeSummary": f"Likes: {', '.join(u2['answers'][:3])}"},
                 timeout=10
             )
 

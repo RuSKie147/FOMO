@@ -28,11 +28,11 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
   const { user, college } = useAuth();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const baseLayersRef = useRef<{ dark: L.TileLayer; satellite: L.TileLayer; osm: L.TileLayer } | null>(null);
+  const baseLayersRef = useRef<{ satellite: L.TileLayer; osm: L.TileLayer } | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const radarCircleRef = useRef<L.Circle | null>(null);
 
-  const [activeTile, setActiveTile] = useState<'dark' | 'satellite' | 'osm'>('dark');
+  const [activeTile, setActiveTile] = useState<'osm' | 'satellite'>('osm');
   const [events, setEvents] = useState<CampusEvent[]>([]);
   const [currentCoords, setCurrentCoords] = useState({ lat: IIITD_CENTER.lat, lng: IIITD_CENTER.lng });
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -55,6 +55,10 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
       }
       if (isMounted) {
         // Indian college student demo events (50:50 gender ratio)
+        const now = new Date();
+        const schedTime = (hoursFromNow: number) => new Date(now.getTime() + hoursFromNow * 3600000).toISOString();
+        const expTime = (hoursFromNow: number) => new Date(now.getTime() + (hoursFromNow + 4) * 3600000).toISOString();
+
         setEvents([
           {
             eventId: 'evt-iiitd-1',
@@ -63,6 +67,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             title: 'Indie Jam Session & Synth Hangout',
             description: 'Bringing my Korg synth to the SAC lawns. Need vocalists and acoustic guitar.',
             category: 'MUSIC',
+            locationName: 'SAC Lawns',
             lat: 28.5448,
             lng: 77.2724,
             memberCount: 3,
@@ -70,6 +75,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             status: 'ACTIVE',
             similarityScore: 0.95,
             distanceKm: 0.1,
+            scheduledAt: schedTime(2),
+            expiresAt: expTime(2),
             createdAt: new Date().toISOString()
           },
           {
@@ -79,6 +86,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             title: 'Midnight Hackathon Sprint',
             description: 'Grinding AI models on 4th floor R&D lab. Red bull provided.',
             category: 'HACK',
+            locationName: 'R&D Block 4th Floor',
             lat: 28.5456,
             lng: 77.2730,
             memberCount: 2,
@@ -86,6 +94,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             status: 'ACTIVE',
             similarityScore: 0.88,
             distanceKm: 0.1,
+            scheduledAt: schedTime(4),
+            expiresAt: expTime(4),
             createdAt: new Date().toISOString()
           },
           {
@@ -95,6 +105,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             title: 'Lo-Fi Study Group @ Library',
             description: 'Quiet study grind for midsems. 2nd floor library quiet room.',
             category: 'STUDY',
+            locationName: 'Library 2nd Floor',
             lat: 28.5463,
             lng: 77.2736,
             memberCount: 1,
@@ -102,6 +113,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             status: 'ACTIVE',
             similarityScore: 0.81,
             distanceKm: 0.1,
+            scheduledAt: schedTime(6),
+            expiresAt: expTime(6),
             createdAt: new Date().toISOString()
           },
           {
@@ -111,6 +124,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             title: 'Chai & Maggi Evening Crawl',
             description: 'Taking a study break to hit the canteen outside gate 1.',
             category: 'FOOD',
+            locationName: 'Cafeteria Gate 1',
             lat: 28.5445,
             lng: 77.2730,
             memberCount: 4,
@@ -118,6 +132,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             status: 'CREW_LOCKED',
             similarityScore: 0.72,
             distanceKm: 0.2,
+            scheduledAt: schedTime(8),
+            expiresAt: expTime(8),
             createdAt: new Date().toISOString()
           },
           {
@@ -127,6 +143,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             title: 'Campus 5K Evening Run',
             description: 'Perimeter jogging around boys hostel and academic perimeter.',
             category: 'FITNESS',
+            locationName: 'Perimeter Track',
             lat: 28.5452,
             lng: 77.2742,
             memberCount: 2,
@@ -134,6 +151,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             status: 'ACTIVE',
             similarityScore: 0.65,
             distanceKm: 0.2,
+            scheduledAt: schedTime(10),
+            expiresAt: expTime(10),
             createdAt: new Date().toISOString()
           },
           {
@@ -143,6 +162,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             title: 'Figma Design Sprint',
             description: 'Redesigning student portal UI together. Beginners welcome to shadow.',
             category: 'HACK',
+            locationName: 'Old Academic Block',
             lat: 28.5459,
             lng: 77.2728,
             memberCount: 2,
@@ -150,6 +170,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
             status: 'ACTIVE',
             similarityScore: 0.78,
             distanceKm: 0.1,
+            scheduledAt: schedTime(12),
+            expiresAt: expTime(12),
             createdAt: new Date().toISOString()
           }
         ]);
@@ -174,14 +196,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
     // Custom Zoom controls
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Pre-create all 3 base tile layers
-    const darkLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      subdomains: ['a', 'b', 'c'],
-      className: 'cyber-dark-tiles',
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
+    // Pre-create base tile layers: Streets (OSM default) & Satellite (ArcGIS)
     const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 18,
       attribution: '&copy; Esri, Maxar, Earthstar Geographics'
@@ -191,10 +206,9 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
       maxZoom: 19,
       subdomains: ['a', 'b', 'c'],
       attribution: '&copy; OpenStreetMap contributors'
-    });
+    }).addTo(map);
 
     baseLayersRef.current = {
-      dark: darkLayer,
       satellite: satLayer,
       osm: osmLayer
     };
@@ -244,15 +258,14 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
     };
   }, []);
 
-  // 3. Switch Tile Layer cleanly
-  const handleTileSwitch = (tileKey: 'dark' | 'satellite' | 'osm') => {
+  // 3. Switch Tile Layer cleanly between Streets and Satellite
+  const handleTileSwitch = (tileKey: 'osm' | 'satellite') => {
     setActiveTile(tileKey);
     const map = mapInstanceRef.current;
     const layers = baseLayersRef.current;
     if (!map || !layers) return;
 
-    // Remove all 3 base layers
-    if (map.hasLayer(layers.dark)) map.removeLayer(layers.dark);
+    // Remove existing base layers
     if (map.hasLayer(layers.satellite)) map.removeLayer(layers.satellite);
     if (map.hasLayer(layers.osm)) map.removeLayer(layers.osm);
 
@@ -378,31 +391,23 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Tile Layer Selector */}
+          {/* Tile Layer Selector: Streets (Primary) & Satellite */}
           <div className="border-[2px] border-pixel-gray flex bg-obsidian">
             <button
-              onClick={() => handleTileSwitch('dark')}
-              className={`px-2.5 py-1 font-mono text-xs font-bold transition-colors ${
-                activeTile === 'dark' ? 'bg-cyber text-black' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              DARK
-            </button>
-            <button
-              onClick={() => handleTileSwitch('satellite')}
-              className={`px-2.5 py-1 font-mono text-xs font-bold transition-colors ${
-                activeTile === 'satellite' ? 'bg-cyber text-black' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              SATELLITE
-            </button>
-            <button
               onClick={() => handleTileSwitch('osm')}
-              className={`px-2.5 py-1 font-mono text-xs font-bold transition-colors ${
+              className={`px-3 py-1 font-mono text-xs font-bold transition-colors ${
                 activeTile === 'osm' ? 'bg-cyber text-black' : 'text-gray-400 hover:text-white'
               }`}
             >
               STREETS
+            </button>
+            <button
+              onClick={() => handleTileSwitch('satellite')}
+              className={`px-3 py-1 font-mono text-xs font-bold transition-colors ${
+                activeTile === 'satellite' ? 'bg-cyber text-black' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              SATELLITE
             </button>
           </div>
 

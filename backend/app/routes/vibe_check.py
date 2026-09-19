@@ -10,8 +10,13 @@ def vibe_check(request: VibeCheckRequest):
     answers_text = " ".join(request.answers)
     vector = bedrock_service.generate_embedding(answers_text)
     
-    # Generate a readable summary from the answers
-    summary = f"You seem like a person who likes {' and '.join(request.answers[:2])}."
+    # Generate a clean summary: "Likes: item1, item2, item3, item4"
+    clean_items = []
+    for a in request.answers[:4]:
+        text = a.strip().rstrip(".").rstrip(",")
+        if text:
+            clean_items.append(text)
+    summary = f"Likes: {', '.join(clean_items)}" if clean_items else "Likes: Campus Exploration"
     
     # Save vector and summary to user profile if userId provided
     if request.userId:

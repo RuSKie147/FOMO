@@ -215,7 +215,7 @@ export const InvitationsModal: React.FC<InvitationsModalProps> = ({ onClose, onA
             /* Outbox Log Tab (useful for demo & testing mock email dispatch) */
             <div className="flex flex-col gap-3">
               <div className="text-[11px] font-mono text-gray-400 border-b border-pixel-gray pb-2 flex items-center justify-between">
-                <span>SIMULATED EMAIL DISPATCH OUTBOX</span>
+                <span>INVITATION DISPATCH OUTBOX</span>
                 <span className="text-cyber">{recentSent.length} EMAILS DISPATCHED</span>
               </div>
               {recentSent.length === 0 ? (
@@ -224,15 +224,12 @@ export const InvitationsModal: React.FC<InvitationsModalProps> = ({ onClose, onA
                 </p>
               ) : (
                 recentSent.map((mail, idx) => (
-                  <div key={idx} className="bg-obsidian border border-pixel-gray p-3 flex flex-col gap-1.5 font-mono text-xs">
+                  <div key={idx} className="bg-obsidian border border-pixel-gray p-3 flex flex-col gap-1 font-mono text-xs hover:border-white/50 transition-colors">
                     <div className="flex justify-between items-center text-gray-400 text-[10px]">
                       <span>TO: <strong className="text-white">{mail.to}</strong></span>
-                      <span className="text-cyber">[{mail.mode || 'LOCAL_MOCK'}]</span>
+                      <span className="text-cyber font-bold">[DISPATCHED]</span>
                     </div>
-                    <div className="text-white font-bold">{mail.subject}</div>
-                    <div className="text-[11px] text-gray-300 break-all bg-pixel-dark p-2 border border-pixel-gray/40">
-                      Link: <span className="text-cyber">{mail.inviteLink}</span>
-                    </div>
+                    <div className="text-white font-bold leading-snug">{mail.subject}</div>
                   </div>
                 ))
               )}

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { X, Mail, Plus, UserPlus, Image as ImageIcon, Upload, MapPin, Clock } from 'lucide-react';
+import { X, Mail, Plus, UserPlus, MapPin, Calendar } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -38,14 +38,29 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
   const [scheduledAt, setScheduledAt] = useState<string>(getInitialLocalDateTime);
   const [durationHours, setDurationHours] = useState<number>(4);
 
+  const setQuickTime = (type: 'now' | 'tonight7' | 'tonight9' | 'tomorrow6') => {
+    const d = new Date();
+    if (type === 'now') {
+      d.setMinutes(d.getMinutes() + 15);
+    } else if (type === 'tonight7') {
+      d.setHours(19, 0, 0, 0);
+      if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
+    } else if (type === 'tonight9') {
+      d.setHours(21, 0, 0, 0);
+      if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
+    } else if (type === 'tomorrow6') {
+      d.setDate(d.getDate() + 1);
+      d.setHours(18, 0, 0, 0);
+    }
+    const offset = d.getTimezoneOffset() * 60000;
+    setScheduledAt(new Date(d.getTime() - offset).toISOString().slice(0, 16));
+  };
+
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [currentEmailInput, setCurrentEmailInput] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isMapMoving, setIsMapMoving] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
@@ -119,22 +134,6 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (ev) => setImagePreview(ev.target?.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   const handleAddEmail = (emailToAdd?: string) => {
     let email = (emailToAdd || currentEmailInput).trim().toLowerCase();
     if (!email) return;
@@ -146,6 +145,12 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    const userEmail = user?.email?.toLowerCase().trim();
+    if (userEmail && email === userEmail) {
+      setEmailError("You cannot invite yourself (you're already the host!)");
       return;
     }
 
@@ -175,23 +180,6 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
     
     setLoading(true);
     try {
-      let finalImageUrl: string | undefined = undefined;
-      let finalImageKey: string | undefined = undefined;
-
-      // Handle image upload if selected
-      if (selectedImage) {
-        try {
-          const uploadInfo = await api.getUploadUrl(selectedImage.type, selectedImage.name);
-          if (uploadInfo && uploadInfo.uploadUrl) {
-            await api.uploadImageToS3(uploadInfo.uploadUrl, selectedImage);
-            finalImageUrl = uploadInfo.publicUrl;
-            finalImageKey = uploadInfo.fileKey;
-          }
-        } catch (uploadErr) {
-          console.warn('Image upload skipped/failed:', uploadErr);
-        }
-      }
-
       // Calculate ISO expiration ensuring future timestamp
       const schedDate = new Date(scheduledAt);
       const schedIso = isNaN(schedDate.getTime()) ? new Date().toISOString() : schedDate.toISOString();
@@ -211,8 +199,6 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
         lng: selectedLng,
         scheduledAt: schedIso,
         expiresAt: expiresIso,
-        imageKey: finalImageKey,
-        imageUrl: finalImageUrl,
         inviteEmails: inviteEmails
       });
       onSuccess();
@@ -416,17 +402,50 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
           <div className="border border-pixel-gray/80 bg-pixel-dark/70 p-3 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <label className="font-mono text-xs text-cyber font-bold flex items-center gap-1.5">
-                <Clock size={13} />
-                <span>DATE, TIME &amp; EXPIRATION</span>
+                <Calendar size={13} />
+                <span>DATE &amp; TIME</span>
               </label>
               <span className="font-mono text-[10px] text-gray-300">
                 EXPIRES: {expirationPreview}
               </span>
             </div>
 
+            {/* Quick Timing Presets */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-mono text-[10px] text-gray-400">PRESETS:</span>
+              <button
+                type="button"
+                onClick={() => setQuickTime('now')}
+                className="font-mono text-[11px] bg-obsidian border border-pixel-gray hover:border-cyber hover:text-cyber px-2 py-0.5 text-gray-300 transition-colors"
+              >
+                In 15m
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickTime('tonight7')}
+                className="font-mono text-[11px] bg-obsidian border border-pixel-gray hover:border-cyber hover:text-cyber px-2 py-0.5 text-gray-300 transition-colors"
+              >
+                Tonight (7 PM)
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickTime('tonight9')}
+                className="font-mono text-[11px] bg-obsidian border border-pixel-gray hover:border-cyber hover:text-cyber px-2 py-0.5 text-gray-300 transition-colors"
+              >
+                Tonight (9 PM)
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickTime('tomorrow6')}
+                className="font-mono text-[11px] bg-obsidian border border-pixel-gray hover:border-cyber hover:text-cyber px-2 py-0.5 text-gray-300 transition-colors"
+              >
+                Tomorrow (6 PM)
+              </button>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1">
-                <label className="font-mono text-[10px] text-gray-400 mb-0.5 block">SCHEDULED TIME</label>
+                <label className="font-mono text-[10px] text-gray-400 mb-0.5 block">CUSTOM DATE &amp; TIME</label>
                 <input 
                   type="datetime-local" 
                   value={scheduledAt}
@@ -436,7 +455,7 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
               </div>
 
               <div>
-                <label className="font-mono text-[10px] text-gray-400 mb-0.5 block">EVENT DURATION (TTL)</label>
+                <label className="font-mono text-[10px] text-gray-400 mb-0.5 block">DURATION (TTL)</label>
                 <div className="flex gap-1">
                   {[1, 2, 4, 8, 24].map(hours => (
                     <button
@@ -467,47 +486,6 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
               className="w-full bg-pixel-dark border-[2px] border-pixel-gray p-2.5 text-white focus:border-cyber outline-none font-body text-xs resize-none"
               placeholder="What's the plan? What should crew bring?"
               required
-            />
-          </div>
-
-          {/* Cover Image Upload (Optional) */}
-          <div className="border border-pixel-gray/70 bg-pixel-dark/60 p-3 flex flex-col gap-2">
-            <label className="font-mono text-xs text-cyber font-bold flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <ImageIcon size={13} />
-                <span>COVER IMAGE (OPTIONAL)</span>
-              </span>
-              {imagePreview && (
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="text-[10px] text-red-400 hover:underline"
-                >
-                  REMOVE
-                </button>
-              )}
-            </label>
-
-            {imagePreview ? (
-              <div className="relative h-24 w-full border border-cyber overflow-hidden bg-black flex items-center justify-center">
-                <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
-              </div>
-            ) : (
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="border-[2px] border-dashed border-pixel-gray hover:border-cyber p-2.5 text-center cursor-pointer bg-obsidian transition-colors flex flex-col items-center gap-1"
-              >
-                <Upload size={14} className="text-gray-400" />
-                <span className="font-mono text-xs text-gray-300">CLICK TO UPLOAD COVER IMAGE</span>
-                <span className="font-mono text-[10px] text-gray-500">JPG, PNG, WebP (Max 5MB)</span>
-              </div>
-            )}
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleImageChange}
-              accept="image/*"
-              className="hidden" 
             />
           </div>
           

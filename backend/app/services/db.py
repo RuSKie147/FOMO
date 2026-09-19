@@ -62,6 +62,11 @@ class DBService:
             except Exception as e:
                 print(f"Warning saving mock db: {e}")
 
+    def reset_database(self):
+        if self.use_mock:
+            self.mock_data = {}
+            self._save_mock_data()
+
     def _get_timestamp(self):
         return datetime.now(timezone.utc).isoformat()
 
@@ -195,6 +200,10 @@ class DBService:
                         v['status'] = 'EXPIRED'
                         v['GSI1PK'] = 'STATUS#EXPIRED'
                         continue
+                    if not v.get('scheduledAt'):
+                        v['scheduledAt'] = v.get('createdAt', self._get_timestamp())
+                    if not v.get('locationName'):
+                        v['locationName'] = 'Campus Grounds'
                     events.append(v)
             return events
         else:

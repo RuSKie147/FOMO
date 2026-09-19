@@ -26,6 +26,10 @@ class EventCreateRequest(BaseModel):
     imageKey: Optional[str] = None
     lat: Optional[float] = 28.5458
     lng: Optional[float] = 77.2732
+    locationName: Optional[str] = None
+    scheduledAt: Optional[str] = None
+    expiresAt: Optional[str] = None
+    maxMembers: Optional[int] = Field(default=4, ge=2, le=10)
     inviteEmails: Optional[List[str]] = []
 
 class EventCreateResponse(BaseModel):
@@ -113,3 +117,23 @@ class JoinEventResponse(BaseModel):
     memberCount: int
     icebreaker: Optional[str] = None
     members: List[SquadMember]
+
+class LeaveEventRequest(BaseModel):
+    userId: str
+
+class DeleteEventRequest(BaseModel):
+    hostId: str
+
+class ChatMessageRequest(BaseModel):
+    userId: str
+    userName: str
+    text: str
+
+class ChatMessage(BaseModel):
+    messageId: str
+    eventId: str
+    userId: str
+    userName: str
+    text: str
+    timestamp: str
+

@@ -74,4 +74,39 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  getRecentSentEmails: () =>
+    fetchWrapper<{ sentEmails: any[] }>('/api/invitations/sent/recent'),
+
+  leaveEvent: (eventId: string, userId: string) =>
+    fetchWrapper<any>(`/api/events/${eventId}/leave`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+
+  cancelEvent: (eventId: string, hostId: string) =>
+    fetchWrapper<any>(`/api/events/${eventId}?hostId=${encodeURIComponent(hostId)}`, {
+      method: 'DELETE',
+    }),
+
+  getEventMessages: (eventId: string) =>
+    fetchWrapper<{ messages: any[] }>(`/api/events/${eventId}/messages`),
+
+  sendEventMessage: (eventId: string, data: { userId: string; userName: string; text: string }) =>
+    fetchWrapper<any>(`/api/events/${eventId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  uploadImageToS3: async (uploadUrl: string, file: File) => {
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!res.ok) {
+      throw new Error(`Upload failed: ${res.statusText}`);
+    }
+    return res;
+  },
 };

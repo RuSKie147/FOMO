@@ -11,6 +11,16 @@ Globals:
       Variables:
         LOG_LEVEL: INFO
 
+Parameters:
+  FrontendUrl:
+    Type: String
+    Default: "http://localhost:5173"
+    Description: Deployed URL of the frontend web application (e.g. https://fomo.yourdomain.com)
+  SesSenderEmail:
+    Type: String
+    Default: "squad@fomo.app"
+    Description: Verified Amazon SES sender email address
+
 Resources:
   # DynamoDB Table
   FOMOEngineTable:
@@ -105,6 +115,8 @@ Resources:
           S3_BUCKET: !Ref FOMOMediaBucket
           AWS_REGION: !Ref AWS::Region
           USE_MOCK_AWS: "false"
+          FRONTEND_URL: !Ref FrontendUrl
+          SES_SENDER_EMAIL: !Ref SesSenderEmail
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref FOMOEngineTable
@@ -117,6 +129,8 @@ Resources:
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
+                - ses:SendEmail
+                - ses:SendRawEmail
               Resource: '*'
       Events:
         ProxyApiRoot:

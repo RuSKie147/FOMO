@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { Map, List, X, Sparkles, RefreshCw, Mail } from 'lucide-react';
+import { Map, List, X, Sparkles, RefreshCw, Mail, Calendar } from 'lucide-react';
 
 interface NavbarProps {
-  currentView: 'feed' | 'radar';
-  setView: (view: 'feed' | 'radar') => void;
+  currentView: 'feed' | 'radar' | 'my-events';
+  setView: (view: 'feed' | 'radar' | 'my-events') => void;
   onOpenInvitations: () => void;
   pendingCount?: number;
 }
@@ -112,42 +112,48 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onOpenInvi
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-obsidian border-b-[2px] border-white relative">
-      <div className="flex justify-between items-center p-4 max-w-4xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="bg-cyber text-black font-mono font-bold text-xl px-2 py-1 shadow-pixel">FOMO</div>
+    <header className="sticky top-0 z-50 bg-obsidian border-b-[2px] border-white relative max-w-full">
+      <div className="flex justify-between items-center px-2.5 sm:px-4 py-2.5 sm:py-4 max-w-4xl mx-auto gap-1 sm:gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="bg-cyber text-black font-mono font-bold text-base sm:text-xl px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-pixel">FOMO</div>
         </div>
         
-        <nav className="flex gap-4">
+        <nav className="flex items-center gap-1 sm:gap-4">
           <button 
             onClick={() => setView('feed')}
-            className={`font-mono font-bold text-sm flex items-center gap-1 ${currentView === 'feed' ? 'text-cyber' : 'text-white'}`}
+            className={`font-mono font-bold text-xs sm:text-sm flex items-center gap-1 px-1 sm:px-2 py-1 transition-colors ${currentView === 'feed' ? 'text-cyber' : 'text-white'}`}
           >
-            <List size={16} /> FEED
+            <List size={14} className="sm:w-4 sm:h-4" /> FEED
           </button>
           <button 
             onClick={() => setView('radar')}
-            className={`font-mono font-bold text-sm flex items-center gap-1 ${currentView === 'radar' ? 'text-cyber' : 'text-white'}`}
+            className={`font-mono font-bold text-xs sm:text-sm flex items-center gap-1 px-1 sm:px-2 py-1 transition-colors ${currentView === 'radar' ? 'text-cyber' : 'text-white'}`}
           >
-            <Map size={16} /> RADAR
+            <Map size={14} className="sm:w-4 sm:h-4" /> RADAR
+          </button>
+          <button 
+            onClick={() => setView('my-events')}
+            className={`font-mono font-bold text-xs sm:text-sm flex items-center gap-1 px-1 sm:px-2 py-1 transition-colors ${currentView === 'my-events' ? 'text-cyber' : 'text-white'}`}
+          >
+            <Calendar size={14} className="sm:w-4 sm:h-4" /> MY EVENTS
           </button>
         </nav>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
           {user && (
             <button 
               onClick={onOpenInvitations}
-              className={`font-mono font-bold text-xs flex items-center gap-1.5 px-3 py-1.5 border-[2px] transition-all ${
+              className={`font-mono font-bold text-xs flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 border-[2px] transition-all ${
                 pendingCount > 0
                   ? 'border-cyber bg-cyber/15 text-cyber shadow-pixel animate-pulse'
                   : 'border-pixel-gray text-gray-400 hover:border-white hover:text-white bg-obsidian'
               }`}
               title="Squad Invitations"
             >
-              <Mail size={14} className={pendingCount > 0 ? 'text-cyber' : 'text-gray-400'} />
+              <Mail size={13} className={pendingCount > 0 ? 'text-cyber' : 'text-gray-400'} />
               <span className="hidden sm:inline">INVITES</span>
               {pendingCount > 0 && (
-                <span className="bg-cyber text-black px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-sm">
+                <span className="bg-cyber text-black px-1 py-0.2 text-[10px] font-mono font-bold rounded-sm">
                   {pendingCount}
                 </span>
               )}
@@ -159,9 +165,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onOpenInvi
               <>
                 <button 
                   onClick={() => setIsProfileOpen(!isProfileOpen)} 
-                  className="flex items-center gap-2 border-[2px] border-white px-3 py-1 rounded-full hover:border-cyber hover:text-cyber transition-colors"
+                  className="flex items-center gap-1.5 border-[2px] border-white px-2 sm:px-3 py-1 rounded-full hover:border-cyber hover:text-cyber transition-colors"
                 >
-                <div className="w-6 h-6 rounded-full bg-cyber flex items-center justify-center text-black font-bold text-xs">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-cyber flex items-center justify-center text-black font-bold text-[11px] sm:text-xs">
                   {user.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <span className="font-mono text-xs hidden sm:block">{user.name?.split(' ')[0] || 'User'}</span>
@@ -175,7 +181,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onOpenInvi
                         {user.name?.charAt(0).toUpperCase() || 'U'}
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-bold font-mono">{user.name || 'User'}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold font-mono">{user.name || 'User'}</span>
+                          <span className="font-mono text-[9px] bg-cyber/20 text-cyber border border-cyber/50 px-1 py-0.2">[ EDIT_PROFILE ]</span>
+                        </div>
                         <span className="text-xs text-gray-400 font-mono truncate max-w-[160px]">{user.email}</span>
                       </div>
                     </div>

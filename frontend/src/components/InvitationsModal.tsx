@@ -48,11 +48,8 @@ export const InvitationsModal: React.FC<InvitationsModalProps> = ({ onClose, onA
 
   const fetchRecentSent = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/invitations/sent/recent');
-      if (res.ok) {
-        const data = await res.json();
-        setRecentSent(data.sentEmails || []);
-      }
+      const data = await api.getRecentSentEmails();
+      setRecentSent(data.sentEmails || []);
     } catch (e) {
       console.warn('Failed to fetch recent sent emails', e);
     }

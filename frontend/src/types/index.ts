@@ -24,12 +24,16 @@ export interface CampusEvent {
   imageKey?: string;
   lat: number;
   lng: number;
+  locationName?: string;
+  scheduledAt?: string;
+  expiresAt?: string;
   memberCount: number;
   maxMembers: number;
-  status: 'ACTIVE' | 'CREW_LOCKED' | 'COMPLETED';
+  status: 'ACTIVE' | 'CREW_LOCKED' | 'COMPLETED' | 'EXPIRED';
   similarityScore?: number;
   distanceKm?: number;
   createdAt: string;
+  memberIds?: string[];
 }
 
 export interface SquadMember {
@@ -47,6 +51,26 @@ export interface CrewSquad {
   members: SquadMember[];
   icebreaker?: string;
   finalizedAt?: string;
+  title?: string;
+  category?: string;
+  description?: string;
+  hostId?: string;
+  hostName?: string;
+  maxMembers?: number;
+  locationName?: string;
+  lat?: number;
+  lng?: number;
+  scheduledAt?: string;
+  expiresAt?: string;
+}
+
+export interface ChatMessage {
+  messageId: string;
+  eventId: string;
+  userId: string;
+  userName: string;
+  text: string;
+  timestamp: string;
 }
 
 export interface EventInvitation {
@@ -64,4 +88,5 @@ export interface EventInvitation {
   maxMembers?: number;
   eventDescription?: string;
 }
+
 

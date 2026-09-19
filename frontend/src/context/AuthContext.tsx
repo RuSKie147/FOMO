@@ -123,7 +123,23 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     const saved = localStorage.getItem('fomo_user');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed) {
+          // Auto-migrate legacy non-Indian demo name from previous browser sessions
+          let changed = false;
+          if (parsed.name && /alex/i.test(parsed.name)) {
+            parsed.name = 'Arjun Verma';
+            changed = true;
+          }
+          if (parsed.email && /alex/i.test(parsed.email)) {
+            parsed.email = parsed.email.replace(/alex\.chen/gi, 'arjun.verma').replace(/alex/gi, 'arjun');
+            changed = true;
+          }
+          if (changed) {
+            localStorage.setItem('fomo_user', JSON.stringify(parsed));
+          }
+          return parsed;
+        }
       } catch (e) {
         return null;
       }
@@ -135,7 +151,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem('fomo_user', JSON.stringify(user));
+      if (/alex/i.test(user.name) || /alex/i.test(user.email)) {
+        const healed: UserProfile = {
+          ...user,
+          name: user.name.replace(/alex\s*chen/gi, 'Arjun Verma').replace(/alex/gi, 'Arjun'),
+          email: user.email.replace(/alex\.chen/gi, 'arjun.verma').replace(/alex/gi, 'arjun')
+        };
+        setUser(healed);
+        localStorage.setItem('fomo_user', JSON.stringify(healed));
+      } else {
+        localStorage.setItem('fomo_user', JSON.stringify(user));
+      }
     } else {
       localStorage.removeItem('fomo_user');
     }

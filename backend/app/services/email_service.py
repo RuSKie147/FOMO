@@ -24,7 +24,8 @@ class EmailService:
         event_title: str,
         event_category: str,
         invite_id: str,
-        event_id: str
+        event_id: str,
+        max_members: int = 4
     ) -> bool:
         """
         Sends an automated cyberpunk invitation email to a student via AWS SES (or mock logger).
@@ -147,7 +148,7 @@ Indraprastha Institute of Information Technology Delhi
     </div>
     
     <p style="font-size: 13px; color: #aaaaaa;">
-      Squads are capped at 4 members. Once filled, the crew automatically locks and activates the Bedrock AI icebreaker.
+      Squads are capped at {max_members} members. Once filled, the crew automatically locks and activates the Bedrock AI icebreaker.
     </p>
     
     <a href="{accept_url}" class="btn">⚡ ACCEPT INVITATION &amp; JOIN SQUAD</a>

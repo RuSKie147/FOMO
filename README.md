@@ -63,7 +63,7 @@ sam deploy --guided
 1. Start the local backend and frontend servers.
 2. Run the seed script `python scripts/seed_demo_data.py`.
 3. Open the frontend in your browser.
-4. Login using one of the demo users (e.g., `alex.chen@iitd.ac.in`).
+4. Login using one of the demo users (e.g., `aarav.mehta@iiitd.ac.in`).
 5. Complete the initial Vibe Check quiz to generate your embeddings.
 6. Browse the personalized event feed.
 7. Find the "Indie Jam Session & Synth Hangout" (which is pre-filled with 3 members).

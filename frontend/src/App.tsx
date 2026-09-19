@@ -9,11 +9,12 @@ import { CampusRadarMap } from './components/CampusRadarMap';
 import { HostEventModal } from './components/HostEventModal';
 import { SquadRoomModal } from './components/SquadRoomModal';
 import { InvitationsModal } from './components/InvitationsModal';
+import { MyEvents } from './components/MyEvents';
 import { Plus } from 'lucide-react';
 
 const AppContent = () => {
   const { user } = useAuth();
-  const [view, setView] = useState<'feed' | 'radar'>('feed');
+  const [view, setView] = useState<'feed' | 'radar' | 'my-events'>('feed');
   const [showHost, setShowHost] = useState(false);
   const [showInvitations, setShowInvitations] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -67,7 +68,7 @@ const AppContent = () => {
   };
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-24 overflow-x-hidden max-w-full">
       <Navbar 
         currentView={view} 
         setView={setView} 
@@ -75,11 +76,17 @@ const AppContent = () => {
         pendingCount={pendingCount}
       />
       
-      <main>
+      <main className="max-w-full overflow-x-hidden">
         {view === 'feed' ? (
           <EventFeed key={refreshKey} onJoinEvent={id => setActiveEvent(id)} />
-        ) : (
+        ) : view === 'radar' ? (
           <CampusRadarMap key={refreshKey} onEventClick={id => setActiveEvent(id)} />
+        ) : (
+          <MyEvents 
+            key={refreshKey} 
+            onOpenSquadRoom={id => setActiveEvent(id)} 
+            onOpenHost={() => setShowHost(true)} 
+          />
         )}
       </main>
 

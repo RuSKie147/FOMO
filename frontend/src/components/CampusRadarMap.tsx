@@ -320,8 +320,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
           <div class="font-bold text-sm text-white mb-1 leading-snug">${ev.title}</div>
           <div class="text-[11px] text-gray-400 mb-2.5 font-body line-clamp-2">${ev.description}</div>
           <div class="flex items-center justify-between text-[10px] text-gray-400 border-t border-pixel-gray pt-2">
-            <span>MEMBERS: <strong class="text-white">${ev.memberCount || 0}/${ev.maxMembers || 4}</strong></span>
-            <span>~${ev.distanceKm || 0.2} KM</span>
+            <span>MEMBERS: <strong class="text-white">${ev.memberCount || 1}/${ev.maxMembers || 4}</strong></span>
+            <span>${ev.locationName || (ev.distanceKm ? `~${ev.distanceKm} KM` : 'CAMPUS')}</span>
           </div>
           <button 
             id="join-btn-${ev.eventId}" 

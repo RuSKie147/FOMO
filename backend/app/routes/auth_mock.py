@@ -41,7 +41,7 @@ def demo_login(request: DemoLoginRequest):
     return {
         "userId": user_id,
         "email": request.email,
-        "name": request.name,
+        "name": display_name,
         "hasCompletedVibeCheck": False,
         "createdAt": user.get("createdAt", "")
     }

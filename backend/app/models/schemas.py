@@ -18,6 +18,8 @@ class UploadUrlResponse(BaseModel):
     publicUrl: str
 
 class EventCreateRequest(BaseModel):
+    userId: Optional[str] = None
+    hostName: Optional[str] = None
     title: str
     description: Optional[str] = ""
     category: Optional[str] = "CHILL"

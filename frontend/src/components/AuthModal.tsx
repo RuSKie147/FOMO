@@ -38,7 +38,7 @@ export const AuthModal: React.FC = () => {
               type="email" 
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="e.g. alex.chen@iiitd.ac.in"
+              placeholder="e.g. aarav.mehta@iiitd.ac.in"
               className="w-full bg-obsidian border-[2px] border-pixel-gray p-3 text-white focus:border-cyber outline-none font-mono"
               required
             />
@@ -81,24 +81,24 @@ export const AuthModal: React.FC = () => {
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
-              onClick={() => handleSetPreset('alex.chen@iiitd.ac.in', 'Alex Chen')}
+              onClick={() => handleSetPreset('aarav.mehta@iiitd.ac.in', 'Aarav Mehta')}
               className="bg-obsidian border border-cyber/50 hover:border-cyber text-cyber font-mono text-[11px] py-1.5 px-2 transition-colors font-bold"
             >
-              IIITD
+              AARAV (IIITD)
             </button>
             <button
               type="button"
-              onClick={() => handleSetPreset('sam.verma@dtu.ac.in', 'Sam Verma')}
+              onClick={() => handleSetPreset('ananya.sharma@dtu.ac.in', 'Ananya Sharma')}
               className="bg-obsidian border border-pixel-gray hover:border-white text-gray-300 font-mono text-[11px] py-1.5 px-2 transition-colors font-bold"
             >
-              DTU
+              ANANYA (DTU)
             </button>
             <button
               type="button"
-              onClick={() => handleSetPreset('priya.sharma@iitd.ac.in', 'Priya Sharma')}
+              onClick={() => handleSetPreset('kabir.malhotra@iitd.ac.in', 'Kabir Malhotra')}
               className="bg-obsidian border border-pixel-gray hover:border-white text-gray-300 font-mono text-[11px] py-1.5 px-2 transition-colors font-bold"
             >
-              IITD
+              KABIR (IITD)
             </button>
           </div>
         </div>

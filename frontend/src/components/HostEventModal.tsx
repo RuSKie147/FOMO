@@ -25,11 +25,12 @@ export const HostEventModal: React.FC<HostEventModalProps> = ({ onClose, onSucce
     try {
       await api.createEvent({
         userId: user.userId,
+        hostName: user.name || 'Campus Host',
         title,
         description: desc,
         category,
-        lat: 28.5458 + (Math.random() * 0.01 - 0.005),
-        lng: 77.2732 + (Math.random() * 0.01 - 0.005)
+        lat: 28.5458 + (Math.random() * 0.003 - 0.0015),
+        lng: 77.2733 + (Math.random() * 0.003 - 0.0015)
       });
       onSuccess();
     } catch (error) {

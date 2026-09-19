@@ -12,40 +12,56 @@ interface SquadRoomModalProps {
 export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose }) => {
   const { user } = useAuth();
   const [squad, setSquad] = useState<CrewSquad | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let ignore = false;
+
     const joinAndFetch = async () => {
       if (!user) return;
       try {
         const res = await api.joinEvent(eventId, {
           userId: user.userId,
           name: user.name,
-          major: user.major || 'CS Major',
-          vibeSummary: user.vibeSummary || 'Campus Explorer'
+          major: user.major || 'Undeclared',
+          vibeSummary: user.vibeSummary || 'FOMO member'
         });
-        setSquad({
-          eventId,
-          status: res.memberCount >= 4 ? 'CREW_LOCKED' : 'OPEN',
-          members: res.members || [],
-          icebreaker: res.icebreaker
-        });
+        
+        if (!ignore) {
+          setSquad({
+            eventId,
+            status: res.memberCount >= 4 ? 'CREW_LOCKED' : 'OPEN',
+            members: res.members || [],
+            icebreaker: res.icebreaker
+          });
+        }
       } catch (e) {
-        // Mock fallback if event was already joined or testing offline
-        setSquad({
-          eventId,
-          status: 'CREW_LOCKED',
-          members: [
-            { userId: user.userId, name: user.name, major: 'CS Major', vibeSummary: 'Hacker', joinedAt: '' },
-            { userId: '2', name: 'Priya S.', major: 'Design Major', vibeSummary: 'Creative', joinedAt: '' },
-            { userId: '3', name: 'Marcus J.', major: 'Music Major', vibeSummary: 'Social', joinedAt: '' },
-            { userId: '4', name: 'Rando C.', major: 'Undeclared', vibeSummary: 'Wildcard', joinedAt: '' }
-          ],
-          icebreaker: "Since you all share a passion for creative campus projects, what track or hack are you most hyped about this semester?"
-        });
+        if (!ignore) {
+          setError('Event not found or no longer active');
+        }
       }
     };
+
     joinAndFetch();
+
+    return () => {
+      ignore = true;
+    };
   }, [eventId, user]);
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4">
+        <div className="bg-obsidian border-[2px] border-pixel-gray w-full max-w-md relative flex flex-col p-6 text-center shadow-pixel">
+          <button onClick={onClose} className="absolute top-2 right-2 text-white hover:text-cyber z-10">
+            <X size={24} />
+          </button>
+          <h2 className="text-2xl font-mono text-red-500 mb-4 font-bold">[ ERROR ]</h2>
+          <p className="font-mono text-white">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!squad) return null;
 
@@ -93,7 +109,7 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
               </div>
             ))}
             
-            {!isLocked && Array.from({length: 4 - squad.members.length}).map((_, i) => (
+            {!isLocked && Array.from({length: Math.max(0, 4 - squad.members.length)}).map((_, i) => (
               <div key={`empty-${i}`} className="border-[2px] border-dashed border-pixel-gray p-4 flex items-center gap-4 bg-transparent opacity-50">
                 <div className="w-12 h-12 border-[2px] border-pixel-gray flex-shrink-0 flex items-center justify-center text-pixel-gray">
                   ?
@@ -119,7 +135,9 @@ export const SquadRoomModal: React.FC<SquadRoomModalProps> = ({ eventId, onClose
         
         {isLocked && (
           <div className="p-4 border-t-[2px] border-pixel-gray bg-pixel-dark flex justify-center">
-            <button className="bg-white text-black font-mono font-bold px-8 py-3 flex items-center gap-2 hover:bg-cyber transition-colors border-[2px] border-white">
+            <button 
+              onClick={() => alert('Group chat coming soon! Share this with your crew 🎉')}
+              className="bg-white text-black font-mono font-bold px-8 py-3 flex items-center gap-2 hover:bg-cyber transition-colors border-[2px] border-white">
               <MessageSquare size={18} /> OPEN GROUP CHAT
             </button>
           </div>

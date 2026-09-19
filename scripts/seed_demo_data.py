@@ -4,34 +4,65 @@ import random
 import time
 import requests
 import argparse
+import sys
+
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 def print_colored(text, color_code):
-    print(f"\033[{color_code}m{text}\033[0m")
+    try:
+        print(f"\033[{color_code}m{text}\033[0m")
+    except Exception:
+        try:
+            print(text)
+        except Exception:
+            print(text.encode('ascii', 'replace').decode('ascii'))
 
 users = [
     {
-        "email": "alex.chen@iiitd.ac.in",
-        "name": "Alex Chen",
+        "email": "aarav.mehta@iiitd.ac.in",
+        "name": "Aarav Mehta",
+        "gender": "Male",
         "major": "CS Major",
         "answers": ["Coding & Hackathons", "Late-night owl 🦉", "Building a side project"]
     },
     {
-        "email": "priya.sharma@iiitd.ac.in",
-        "name": "Priya Sharma",
+        "email": "ananya.sharma@iiitd.ac.in",
+        "name": "Ananya Sharma",
+        "gender": "Female",
         "major": "Design Major",
         "answers": ["Art & Design", "Exploring new cafes", "Ideas machine & creative"]
     },
     {
-        "email": "marcus.beats@iiitd.ac.in",
-        "name": "Marcus Johnson",
-        "major": "Music Major",
+        "email": "kabir.malhotra@iiitd.ac.in",
+        "name": "Kabir Malhotra",
+        "gender": "Male",
+        "major": "ECE Major",
         "answers": ["Music & Concerts", "Weekend warrior", "Chill vibes & listener"]
     },
     {
-        "email": "rando.calrissian@iiitd.ac.in",
-        "name": "Rando Calrissian",
-        "major": "Undeclared",
-        "answers": ["Pickup sports game", "Big loud crowds", "Hype person & energy"]
+        "email": "priya.patel@iiitd.ac.in",
+        "name": "Priya Patel",
+        "gender": "Female",
+        "major": "AI & Data Science",
+        "answers": ["Coding & Hackathons", "Coffee & Cafes", "Hype person & energy"]
+    },
+    {
+        "email": "rohan.gupta@iiitd.ac.in",
+        "name": "Rohan Gupta",
+        "gender": "Male",
+        "major": "Mechanical Engineering",
+        "answers": ["Sports & Fitness", "Morning runner", "Planner & organizer"]
+    },
+    {
+        "email": "rhea.sen@iiitd.ac.in",
+        "name": "Rhea Sen",
+        "gender": "Female",
+        "major": "Mathematics & Computing",
+        "answers": ["Study Groups", "Library grinder", "Deep discussions & podcasts"]
     }
 ]
 
@@ -84,10 +115,17 @@ def run_seed(base_url):
 
     print_colored("\n🎉 Seeding campus events...", "95")
     first_event_id = None
+    second_event_id = None
+    third_event_id = None
+    user_list = list(created_users.values())
     for i, e in enumerate(events_data):
-        lat = IITD_LAT + random.uniform(-0.02, 0.02)
-        lon = IITD_LON + random.uniform(-0.02, 0.02)
+        lat = IIITD_LAT + random.uniform(-0.0018, 0.0018)
+        lon = IIITD_LON + random.uniform(-0.0018, 0.0018)
+        # Cycle through users as event hosts
+        host_user = user_list[i % len(user_list)] if user_list else {}
         payload = {
+            "userId": host_user.get("userId", "user_demo"),
+            "hostName": host_user.get("name", "Campus User"),
             "title": e["title"],
             "description": e["desc"],
             "category": e["category"],
@@ -101,6 +139,10 @@ def run_seed(base_url):
                 event_id = evt.get("eventId")
                 if i == 0:
                     first_event_id = event_id
+                elif i == 1:
+                    second_event_id = event_id
+                elif i == 4:
+                    third_event_id = event_id
                 print(f" -> Created [{e['category']}] {e['title']}")
             else:
                 print_colored(f" -> Failed to create event {e['title']}: {res.status_code}", "91")
@@ -109,7 +151,7 @@ def run_seed(base_url):
 
     if first_event_id:
         print_colored(f"\n👥 Pre-joining 3 members to '{events_data[0]['title']}'...", "93")
-        joiners = ["priya.sharma@iitd.ac.in", "marcus.beats@iitd.ac.in", "rando.calrissian@iitd.ac.in"]
+        joiners = ["ananya.sharma@iiitd.ac.in", "kabir.malhotra@iiitd.ac.in", "priya.patel@iiitd.ac.in"]
         for email in joiners:
             u = created_users.get(email)
             if u:
@@ -130,7 +172,30 @@ def run_seed(base_url):
                         print_colored(f"    ✗ {u['name']} failed to join: {join_res.status_code}", "91")
                 except Exception as e:
                     print_colored(f"    ✗ Error joining {u['name']}: {e}", "91")
-        print_colored(f"   => Event is now 3/4 full! Ready for Alex Chen to trigger CREW_LOCKED!", "92")
+        print_colored(f"   => Event is now 3/4 full! Ready for Aarav Mehta to trigger CREW_LOCKED!", "92")
+
+    if second_event_id and "priya.patel@iiitd.ac.in" in created_users:
+        u = created_users["priya.patel@iiitd.ac.in"]
+        requests.post(
+            f"{base_url}/api/events/{second_event_id}/join",
+            json={"userId": u["userId"], "name": u["name"], "major": u["major"], "vibeSummary": "AI & Hackathons"},
+            timeout=10
+        )
+
+    if third_event_id and "rohan.gupta@iiitd.ac.in" in created_users:
+        u1 = created_users["rohan.gupta@iiitd.ac.in"]
+        requests.post(
+            f"{base_url}/api/events/{third_event_id}/join",
+            json={"userId": u1["userId"], "name": u1["name"], "major": u1["major"], "vibeSummary": "Street Food & Chai"},
+            timeout=10
+        )
+        if "rhea.sen@iiitd.ac.in" in created_users:
+            u2 = created_users["rhea.sen@iiitd.ac.in"]
+            requests.post(
+                f"{base_url}/api/events/{third_event_id}/join",
+                json={"userId": u2["userId"], "name": u2["name"], "major": u2["major"], "vibeSummary": "Cafe & Pods"},
+                timeout=10
+            )
 
     print_colored("\n✅ Demo seeding completed successfully!", "92")
 

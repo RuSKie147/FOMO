@@ -27,17 +27,20 @@ const TILE_LAYERS = {
   dark: {
     name: 'CYBER_DARK',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    subdomains: ['a', 'b', 'c'],
+    attribution: '&copy; OpenStreetMap contributors'
   },
   satellite: {
     name: 'SATELLITE',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: '&copy; Esri & Maxar'
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    subdomains: [''],
+    attribution: '&copy; Google Maps'
   },
   osm: {
     name: 'STREET_MAP',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    subdomains: ['a', 'b', 'c'],
+    attribution: '&copy; OpenStreetMap contributors'
   }
 };
 
@@ -45,8 +48,9 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
   const { user, college } = useAuth();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const baseLayersRef = useRef<{ dark: L.TileLayer; satellite: L.TileLayer; osm: L.TileLayer } | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const radarCircleRef = useRef<L.Circle | null>(null);
 
   const [activeTile, setActiveTile] = useState<'dark' | 'satellite' | 'osm'>('dark');
   const [events, setEvents] = useState<CampusEvent[]>([]);
@@ -67,35 +71,36 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
           }
         }
       } catch (e) {
-        // Mock events placed precisely on campus
+        // Fallback below
       }
       if (isMounted) {
+        // Indian college student demo events (50:50 gender ratio)
         setEvents([
           {
             eventId: 'evt-iiitd-1',
             hostId: 'h1',
-            hostName: 'Alex Chen',
+            hostName: 'Kabir Malhotra',
             title: 'Indie Jam Session & Synth Hangout',
             description: 'Bringing my Korg synth to the SAC lawns. Need vocalists and acoustic guitar.',
             category: 'MUSIC',
-            lat: 28.5442,
-            lng: 77.2721,
+            lat: 28.5448,
+            lng: 77.2724,
             memberCount: 3,
             maxMembers: 4,
             status: 'ACTIVE',
             similarityScore: 0.95,
-            distanceKm: 0.2,
+            distanceKm: 0.1,
             createdAt: new Date().toISOString()
           },
           {
             eventId: 'evt-iiitd-2',
             hostId: 'h2',
-            hostName: 'Priya S.',
+            hostName: 'Ananya Sharma',
             title: 'Midnight Hackathon Sprint',
             description: 'Grinding AI models on 4th floor R&D lab. Red bull provided.',
             category: 'HACK',
-            lat: 28.5454,
-            lng: 77.2725,
+            lat: 28.5456,
+            lng: 77.2730,
             memberCount: 2,
             maxMembers: 4,
             status: 'ACTIVE',
@@ -106,11 +111,11 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
           {
             eventId: 'evt-iiitd-3',
             hostId: 'h3',
-            hostName: 'Marcus J.',
+            hostName: 'Aarav Mehta',
             title: 'Lo-Fi Study Group @ Library',
             description: 'Quiet study grind for midsems. 2nd floor library quiet room.',
             category: 'STUDY',
-            lat: 28.5464,
+            lat: 28.5463,
             lng: 77.2736,
             memberCount: 1,
             maxMembers: 4,
@@ -122,33 +127,49 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
           {
             eventId: 'evt-iiitd-4',
             hostId: 'h4',
-            hostName: 'Kabir R.',
+            hostName: 'Priya Patel',
             title: 'Chai & Maggi Evening Crawl',
             description: 'Taking a study break to hit the canteen outside gate 1.',
             category: 'FOOD',
-            lat: 28.5440,
-            lng: 77.2728,
+            lat: 28.5445,
+            lng: 77.2730,
             memberCount: 4,
             maxMembers: 4,
             status: 'CREW_LOCKED',
             similarityScore: 0.72,
-            distanceKm: 0.3,
+            distanceKm: 0.2,
             createdAt: new Date().toISOString()
           },
           {
             eventId: 'evt-iiitd-5',
             hostId: 'h5',
-            hostName: 'Ananya D.',
+            hostName: 'Rohan Gupta',
             title: 'Campus 5K Evening Run',
             description: 'Perimeter jogging around boys hostel and academic perimeter.',
             category: 'FITNESS',
-            lat: 28.5448,
-            lng: 77.2745,
+            lat: 28.5452,
+            lng: 77.2742,
             memberCount: 2,
             maxMembers: 4,
             status: 'ACTIVE',
             similarityScore: 0.65,
             distanceKm: 0.2,
+            createdAt: new Date().toISOString()
+          },
+          {
+            eventId: 'evt-iiitd-6',
+            hostId: 'h6',
+            hostName: 'Rhea Sen',
+            title: 'Figma Design Sprint',
+            description: 'Redesigning student portal UI together. Beginners welcome to shadow.',
+            category: 'HACK',
+            lat: 28.5459,
+            lng: 77.2728,
+            memberCount: 2,
+            maxMembers: 4,
+            status: 'ACTIVE',
+            similarityScore: 0.78,
+            distanceKm: 0.1,
             createdAt: new Date().toISOString()
           }
         ]);
@@ -156,7 +177,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
     };
     loadEvents();
     return () => { isMounted = false; };
-  }, [user]);
+  }, [user, college.domain]);
 
   // 2. Initialize Leaflet Map
   useEffect(() => {
@@ -170,19 +191,59 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
       zoomControl: false
     });
 
-    // Custom Zoom controls styled for brutalist cyber UI
+    // Custom Zoom controls
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    const tileLayer = L.tileLayer(TILE_LAYERS.dark.url, {
+    // Pre-create all 3 base tile layers
+    const darkLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: TILE_LAYERS.dark.attribution
+      subdomains: ['a', 'b', 'c'],
+      className: 'cyber-dark-tiles',
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+      attribution: '&copy; Esri, Maxar, Earthstar Geographics'
+    });
+
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      subdomains: ['a', 'b', 'c'],
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+
+    baseLayersRef.current = {
+      dark: darkLayer,
+      satellite: satLayer,
+      osm: osmLayer
+    };
+
+    // 250m Campus Perimeter Radar Circle
+    const radarCircle = L.circle([IIITD_CENTER.lat, IIITD_CENTER.lng], {
+      radius: 250,
+      color: '#B8FF00',
+      fillColor: '#B8FF00',
+      fillOpacity: 0.05,
+      weight: 1.5,
+      dashArray: '6, 8'
+    }).addTo(map);
+
+    // Inner 120m Core Zone
+    L.circle([IIITD_CENTER.lat, IIITD_CENTER.lng], {
+      radius: 120,
+      color: '#B8FF00',
+      fillColor: 'transparent',
+      weight: 1,
+      dashArray: '3, 6',
+      opacity: 0.6
     }).addTo(map);
 
     const markersGroup = L.layerGroup().addTo(map);
 
     mapInstanceRef.current = map;
-    tileLayerRef.current = tileLayer;
     markersLayerRef.current = markersGroup;
+    radarCircleRef.current = radarCircle;
 
     // Track mouse coordinates
     map.on('mousemove', (e) => {
@@ -192,7 +253,6 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
       });
     });
 
-    // Map resize handling
     setTimeout(() => {
       map.invalidateSize();
     }, 200);
@@ -200,14 +260,34 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
     return () => {
       map.remove();
       mapInstanceRef.current = null;
+      baseLayersRef.current = null;
     };
   }, []);
 
-  // 3. Switch Tile Layer
-  useEffect(() => {
-    if (!mapInstanceRef.current || !tileLayerRef.current) return;
-    tileLayerRef.current.setUrl(TILE_LAYERS[activeTile].url);
-  }, [activeTile]);
+  // 3. Switch Tile Layer cleanly
+  const handleTileSwitch = (tileKey: 'dark' | 'satellite' | 'osm') => {
+    setActiveTile(tileKey);
+    const map = mapInstanceRef.current;
+    const layers = baseLayersRef.current;
+    if (!map || !layers) return;
+
+    // Remove all 3 base layers
+    if (map.hasLayer(layers.dark)) map.removeLayer(layers.dark);
+    if (map.hasLayer(layers.satellite)) map.removeLayer(layers.satellite);
+    if (map.hasLayer(layers.osm)) map.removeLayer(layers.osm);
+
+    // Add selected layer
+    map.addLayer(layers[tileKey]);
+
+    // Ensure radar circles and markers stay on top
+    if (radarCircleRef.current) radarCircleRef.current.bringToFront();
+    if (markersLayerRef.current) markersLayerRef.current.bringToFront();
+
+    map.invalidateSize();
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+  };
 
   // 4. Update Markers (Landmarks + Events)
   useEffect(() => {
@@ -224,7 +304,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
 
     filtered.forEach((ev) => {
       const isLocked = ev.status === 'CREW_LOCKED';
-      const score = Math.round((ev.similarityScore || 0.8) * 100);
+      const rawScore = ev.similarityScore !== undefined ? ev.similarityScore : 0.75;
+      const score = Math.max(12, Math.min(99, Math.round(rawScore * 100)));
 
       const eventIcon = L.divIcon({
         className: 'custom-event-marker',
@@ -320,7 +401,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
           {/* Tile Layer Selector */}
           <div className="border-[2px] border-pixel-gray flex bg-obsidian">
             <button
-              onClick={() => setActiveTile('dark')}
+              onClick={() => handleTileSwitch('dark')}
               className={`px-2.5 py-1 font-mono text-xs font-bold transition-colors ${
                 activeTile === 'dark' ? 'bg-cyber text-black' : 'text-gray-400 hover:text-white'
               }`}
@@ -328,7 +409,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
               DARK
             </button>
             <button
-              onClick={() => setActiveTile('satellite')}
+              onClick={() => handleTileSwitch('satellite')}
               className={`px-2.5 py-1 font-mono text-xs font-bold transition-colors ${
                 activeTile === 'satellite' ? 'bg-cyber text-black' : 'text-gray-400 hover:text-white'
               }`}
@@ -336,7 +417,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
               SATELLITE
             </button>
             <button
-              onClick={() => setActiveTile('osm')}
+              onClick={() => handleTileSwitch('osm')}
               className={`px-2.5 py-1 font-mono text-xs font-bold transition-colors ${
                 activeTile === 'osm' ? 'bg-cyber text-black' : 'text-gray-400 hover:text-white'
               }`}
@@ -393,7 +474,7 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
       {/* Map Canvas Container */}
       <div className="flex-1 min-h-[520px] border-[2px] border-white shadow-pixel-white bg-obsidian relative overflow-hidden flex flex-col">
         {/* Leaflet Map Div */}
-        <div ref={mapContainerRef} className={`w-full h-full min-h-[520px] z-10 ${activeTile === 'dark' ? 'cyber-dark-tiles' : ''}`}></div>
+        <div ref={mapContainerRef} className="w-full h-full min-h-[520px] z-10"></div>
 
         {/* Floating HUD Coordinate Tracker (Top-Left) */}
         <div className="absolute top-3 left-3 bg-black/85 border-[2px] border-pixel-gray px-2.5 py-1.5 font-mono text-[10px] text-cyber z-20 shadow-pixel pointer-events-none flex items-center gap-2">
@@ -410,8 +491,8 @@ export const CampusRadarMap: React.FC<CampusRadarMapProps> = ({ onEventClick }) 
 
       {/* Custom Leaflet Overrides */}
       <style>{`
-        .cyber-dark-tiles .leaflet-tile {
-          filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(125%) saturate(30%) !important;
+        .cyber-dark-canvas .leaflet-tile {
+          filter: brightness(0.65) invert(1) contrast(3.2) hue-rotate(200deg) saturate(0.25) !important;
         }
         .leaflet-popup-content-wrapper {
           background: transparent !important;

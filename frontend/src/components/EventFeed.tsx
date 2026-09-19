@@ -12,49 +12,45 @@ export const EventFeed: React.FC<EventFeedProps> = ({ onJoinEvent }) => {
   const { user, college } = useAuth();
   const [events, setEvents] = useState<CampusEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    let ignore = false;
+    
+    const loadData = async () => {
       try {
+        setLoading(true);
+        setError(null);
         if (user) {
           const res = await api.getFeed(user.userId, 28.5458, 77.2732);
-          const domainEvents = (res.events || []).filter((ev: CampusEvent) => !ev.domain || ev.domain === college.domain);
-          if (domainEvents.length > 0) {
+          if (!ignore) {
+            const domainEvents = (res.events || []).filter((ev: CampusEvent) => !ev.domain || ev.domain === college.domain);
             setEvents(domainEvents);
-            setLoading(false);
-            return;
           }
         }
       } catch (e) {
-        // Fallback to sample events below
-      }
-
-      // If no events exist yet for this college, populate demo crew events
-      setEvents([
-        {
-          eventId: '1', hostId: 'h1', hostName: 'Riya S.', title: `${college.code} Hackathon Prep`,
-          description: `Grinding leetcode and building side projects for ${college.code}. Coffee on me.`,
-          category: 'HACK', domain: college.domain, lat: 28.546, lng: 77.273, memberCount: 3, maxMembers: 4,
-          status: 'ACTIVE', similarityScore: 0.95, distanceKm: 0.2, createdAt: new Date().toISOString()
-        },
-        {
-          eventId: '2', hostId: 'h2', hostName: 'Kabir', title: 'Indie Rock Jam Session',
-          description: 'Bringing my acoustic. Need a bassist and someone who can harmonize.',
-          category: 'MUSIC', domain: college.domain, lat: 28.545, lng: 77.275, memberCount: 1, maxMembers: 4,
-          status: 'ACTIVE', similarityScore: 0.82, distanceKm: 0.5, createdAt: new Date().toISOString()
-        },
-        {
-          eventId: '3', hostId: 'h3', hostName: 'Aman', title: 'Night Canteen Run',
-          description: `Craving midnight snacks at ${college.code} canteen. Who is in?`,
-          category: 'FOOD', domain: college.domain, lat: 28.548, lng: 77.271, memberCount: 4, maxMembers: 4,
-          status: 'CREW_LOCKED', similarityScore: 0.6, distanceKm: 0.8, createdAt: new Date().toISOString()
+        if (!ignore) {
+          setError('Failed to load nearby crews. Please try again.');
+          setEvents([]);
         }
-      ]);
-      setLoading(false);
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
     };
-    
-    fetchEvents();
-  }, [user, college]);
+
+    loadData();
+
+    return () => {
+      ignore = true;
+    };
+  }, [user, college, retryCount]);
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
 
   if (loading) {
     return (
@@ -79,7 +75,16 @@ export const EventFeed: React.FC<EventFeedProps> = ({ onJoinEvent }) => {
         <span className="font-mono text-cyber text-sm">{events.length} ACTIVE AT {college.code}</span>
       </div>
       
-      {events.length === 0 ? (
+      {error ? (
+        <div className="text-center py-20 border-[2px] border-dashed border-red-500/50 bg-red-500/5">
+          <p className="font-mono text-red-400 mb-4">{error}</p>
+          <button 
+            onClick={handleRetry}
+            className="font-mono text-sm bg-obsidian border-[1px] border-red-500 text-red-500 px-4 py-2 hover:bg-red-500/10 transition-colors">
+            [ RETRY ]
+          </button>
+        </div>
+      ) : events.length === 0 ? (
         <div className="text-center py-20 border-[2px] border-dashed border-pixel-gray">
           <p className="font-mono text-gray-500">NO CREWS FOUND AT {college.name}</p>
           <p className="font-mono text-sm text-cyber mt-2">&gt; INITIATE THE FIRST CREW FOR {college.code}</p>

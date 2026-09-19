@@ -32,7 +32,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onJoin }) => {
           </span>
           {event.similarityScore !== undefined && (
             <span className="text-xs font-mono text-cyber border-[1px] border-cyber px-1">
-              [ {Math.round(event.similarityScore * 100)}% MATCH ]
+              [ {Math.max(12, Math.min(99, Math.round(event.similarityScore * 100)))}% MATCH ]
             </span>
           )}
         </div>
@@ -46,7 +46,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onJoin }) => {
           </div>
           {event.distanceKm !== undefined && (
             <div className="flex items-center gap-1">
-              <MapPin size={12} /> {event.distanceKm.toFixed(1)} KM
+              <MapPin size={12} /> {event.distanceKm < 1 ? `${Math.round(event.distanceKm * 1000)} M` : `${event.distanceKm.toFixed(1)} KM`}
             </div>
           )}
         </div>

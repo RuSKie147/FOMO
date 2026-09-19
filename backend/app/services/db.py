@@ -2,8 +2,12 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from datetime import datetime, timezone
 import uuid
+import json
+import os
 from typing import List, Dict, Any, Optional
 from app.config import config
+
+DB_FILE = os.path.join(os.path.dirname(__file__), "..", "..", ".mock_db.json")
 
 class DBService:
     def __init__(self):
@@ -12,7 +16,25 @@ class DBService:
             self.dynamodb = boto3.resource('dynamodb', region_name=config.AWS_REGION)
             self.table = self.dynamodb.Table(config.DYNAMODB_TABLE)
         else:
-            self.mock_data = {}
+            self.mock_data = self._load_mock_data()
+
+    def _load_mock_data(self) -> Dict:
+        if os.path.exists(DB_FILE):
+            try:
+                with open(DB_FILE, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Warning loading mock db: {e}")
+                return {}
+        return {}
+
+    def _save_mock_data(self):
+        if self.use_mock:
+            try:
+                with open(DB_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(self.mock_data, f, indent=2)
+            except Exception as e:
+                print(f"Warning saving mock db: {e}")
 
     def _get_timestamp(self):
         return datetime.now(timezone.utc).isoformat()
@@ -31,6 +53,7 @@ class DBService:
         }
         if self.use_mock:
             self.mock_data[f"{item['PK']}|{item['SK']}"] = item
+            self._save_mock_data()
         else:
             self.table.put_item(Item=item)
         return item
@@ -61,6 +84,7 @@ class DBService:
                     'vibeSummary': vibe_summary,
                     'createdAt': self._get_timestamp()
                 }
+            self._save_mock_data()
         else:
             update_expr = "SET vibeVector = :vec"
             expr_attrs = {':vec': vibe_vector}
@@ -73,7 +97,7 @@ class DBService:
                 ExpressionAttributeValues=expr_attrs
             )
 
-    def put_event(self, host_id: str, title: str, description: str, category: str, image_key: str, event_vector: List[float], lat: float, lng: float):
+    def put_event(self, host_id: str, title: str, description: str, category: str, image_key: str, event_vector: List[float], lat: float, lng: float, host_name: str = ""):
         event_id = str(uuid.uuid4())
         item = {
             'PK': f'EVENT#{event_id}',
@@ -82,6 +106,7 @@ class DBService:
             'GSI1PK': 'STATUS#ACTIVE',
             'GSI1SK': self._get_timestamp(),
             'hostId': host_id,
+            'hostName': host_name or host_id,
             'title': title,
             'description': description,
             'category': category,
@@ -91,10 +116,12 @@ class DBService:
             'lng': lng,
             'memberCount': 0,
             'maxMembers': 4,
+            'status': 'ACTIVE',
             'createdAt': self._get_timestamp()
         }
         if self.use_mock:
             self.mock_data[f"{item['PK']}|{item['SK']}"] = item
+            self._save_mock_data()
         else:
             self.table.put_item(Item=item)
         return item, event_id
@@ -103,7 +130,7 @@ class DBService:
         if self.use_mock:
             events = []
             for k, v in self.mock_data.items():
-                if v.get('GSI1PK') == 'STATUS#ACTIVE':
+                if v.get('GSI1PK') in ['STATUS#ACTIVE', 'STATUS#LOCKED'] or (k.startswith('EVENT#') and k.endswith('|METADATA')):
                     events.append(v)
             return events
         else:
@@ -133,6 +160,7 @@ class DBService:
                 if event_key in self.mock_data:
                     self.mock_data[event_key]['memberCount'] = self.mock_data[event_key].get('memberCount', 0) + 1
             self.mock_data[member_key] = item
+            self._save_mock_data()
             return True
         else:
             try:
@@ -177,6 +205,13 @@ class DBService:
             response = self.table.get_item(Key={'PK': f'EVENT#{event_id}', 'SK': 'METADATA'})
             return response.get('Item')
 
+    def get_crew_status(self, event_id: str) -> Optional[Dict]:
+        if self.use_mock:
+            return self.mock_data.get(f"EVENT#{event_id}|CREW#STATUS")
+        else:
+            res = self.table.get_item(Key={'PK': f'EVENT#{event_id}', 'SK': 'CREW#STATUS'})
+            return res.get('Item')
+
     def update_crew_status(self, event_id: str, icebreaker: str):
         item = {
             'PK': f'EVENT#{event_id}',
@@ -192,13 +227,16 @@ class DBService:
             event_key = f"EVENT#{event_id}|METADATA"
             if event_key in self.mock_data:
                 self.mock_data[event_key]['GSI1PK'] = 'STATUS#LOCKED'
+                self.mock_data[event_key]['status'] = 'CREW_LOCKED'
+                self.mock_data[event_key]['icebreakerPrompt'] = icebreaker
+            self._save_mock_data()
         else:
             self.table.put_item(Item=item)
             # Remove from active index
             self.table.update_item(
                 Key={'PK': f'EVENT#{event_id}', 'SK': 'METADATA'},
-                UpdateExpression="SET GSI1PK = :status",
-                ExpressionAttributeValues={':status': 'STATUS#LOCKED'}
+                UpdateExpression="SET GSI1PK = :status, icebreakerPrompt = :ice",
+                ExpressionAttributeValues={':status': 'STATUS#LOCKED', ':ice': icebreaker}
             )
 
 db_service = DBService()

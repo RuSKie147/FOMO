@@ -4,8 +4,29 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import json
 import os
+from decimal import Decimal
 from typing import List, Dict, Any, Optional
 from app.config import config
+
+def to_dynamodb_item(obj: Any) -> Any:
+    """Recursively converts float values to Decimal for DynamoDB storage."""
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    elif isinstance(obj, dict):
+        return {k: to_dynamodb_item(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [to_dynamodb_item(v) for v in obj]
+    return obj
+
+def from_dynamodb_item(obj: Any) -> Any:
+    """Recursively converts Decimal values back to float/int for API serialization."""
+    if isinstance(obj, Decimal):
+        return float(obj) if obj % 1 > 0 else int(obj)
+    elif isinstance(obj, dict):
+        return {k: from_dynamodb_item(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [from_dynamodb_item(v) for v in obj]
+    return obj
 
 DB_FILE = os.path.join(os.path.dirname(__file__), "..", "..", ".mock_db.json")
 
@@ -86,7 +107,7 @@ class DBService:
             self.mock_data[f"{item['PK']}|{item['SK']}"] = item
             self._save_mock_data()
         else:
-            self.table.put_item(Item=item)
+            self.table.put_item(Item=to_dynamodb_item(item))
         return item
 
     def get_user(self, user_id: str) -> Optional[Dict]:
@@ -96,7 +117,8 @@ class DBService:
             return self.mock_data.get(f"{pk}|{sk}")
         else:
             response = self.table.get_item(Key={'PK': pk, 'SK': sk})
-            return response.get('Item')
+            item = response.get('Item')
+            return from_dynamodb_item(item) if item else None
 
     def update_user_vibe(self, user_id: str, vibe_vector: List[float], vibe_summary: str = ""):
         pk = f'USER#{user_id}'
@@ -175,7 +197,7 @@ class DBService:
             self.mock_data[f"{item['PK']}|{item['SK']}"] = item
             self._save_mock_data()
         else:
-            self.table.put_item(Item=item)
+            self.table.put_item(Item=to_dynamodb_item(item))
         return item, event_id
 
     def _is_expired(self, expires_at_str: str) -> bool:
@@ -211,7 +233,7 @@ class DBService:
                 IndexName='GSI1',
                 KeyConditionExpression=Key('GSI1PK').eq('STATUS#ACTIVE')
             )
-            items = response.get('Items', [])
+            items = [from_dynamodb_item(it) for it in response.get('Items', [])]
             return [it for it in items if not self._is_expired(it.get('expiresAt'))]
 
     def add_squad_member(self, event_id: str, user_id: str, name: str, major: str, vibe_summary: str) -> bool:
@@ -266,7 +288,7 @@ class DBService:
             response = self.table.query(
                 KeyConditionExpression=Key('PK').eq(f'EVENT#{event_id}') & Key('SK').begins_with('MEMBER#')
             )
-            items = response.get('Items', [])
+            items = [from_dynamodb_item(it) for it in response.get('Items', [])]
             for m in items:
                 if 'userId' not in m:
                     m['userId'] = m.get('SK', '').replace('MEMBER#', '')
@@ -277,14 +299,16 @@ class DBService:
             return self.mock_data.get(f"EVENT#{event_id}|METADATA")
         else:
             response = self.table.get_item(Key={'PK': f'EVENT#{event_id}', 'SK': 'METADATA'})
-            return response.get('Item')
+            item = response.get('Item')
+            return from_dynamodb_item(item) if item else None
 
     def get_crew_status(self, event_id: str) -> Optional[Dict]:
         if self.use_mock:
             return self.mock_data.get(f"EVENT#{event_id}|CREW#STATUS")
         else:
             res = self.table.get_item(Key={'PK': f'EVENT#{event_id}', 'SK': 'CREW#STATUS'})
-            return res.get('Item')
+            item = res.get('Item')
+            return from_dynamodb_item(item) if item else None
 
     def update_crew_status(self, event_id: str, icebreaker: str):
         item = {

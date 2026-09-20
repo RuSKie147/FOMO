@@ -51,6 +51,9 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
   # S3 Media Bucket
   FOMOMediaBucket:
@@ -113,7 +116,6 @@ Resources:
           DYNAMODB_TABLE: !Ref FOMOEngineTable
           MEDIA_BUCKET: !Ref FOMOMediaBucket
           S3_BUCKET: !Ref FOMOMediaBucket
-          AWS_REGION: !Ref AWS::Region
           USE_MOCK_AWS: "false"
           FRONTEND_URL: !Ref FrontendUrl
           SES_SENDER_EMAIL: !Ref SesSenderEmail
@@ -191,10 +193,41 @@ Resources:
       Principal: cognito-idp.amazonaws.com
       SourceArn: !GetAtt CognitoUserPool.Arn
 
+  # S3 Bucket for Frontend Web Application Hosting
+  FOMOFrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FOMOFrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FOMOFrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${FOMOFrontendBucket}/*'
+
 Outputs:
   ApiUrl:
     Description: "API Gateway endpoint URL"
     Value: !Sub "https://${FOMOApi}.execute-api.${AWS::Region}.amazonaws.com"
+  FrontendUrl:
+    Description: "Frontend Website URL"
+    Value: !GetAtt FOMOFrontendBucket.WebsiteURL
+  FrontendBucket:
+    Description: "Frontend S3 Bucket Name"
+    Value: !Ref FOMOFrontendBucket
   TableName:
     Description: "DynamoDB Table Name"
     Value: !Ref FOMOEngineTable
